@@ -79,8 +79,8 @@ async function obtenerUsuarioDesdeRequest(request: NextRequest) {
     // Intentar con el refresh token
     if (refreshToken) {
       const { data: { user }, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
-      if (!error && user?.user) {
-        return user.user;
+      if (!error && user) {
+        return user;
       }
     }
   } catch (error) {
