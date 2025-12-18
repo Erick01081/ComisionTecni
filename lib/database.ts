@@ -139,12 +139,12 @@ export async function obtenerEntregasPorUsuario(user_id: string, accessToken?: s
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl) {
-    console.error('[obtenerEntregasPorRangoFechas] No hay URL de Supabase configurada');
+    console.error('[obtenerEntregasPorUsuario] No hay URL de Supabase configurada');
     return [];
   }
 
   if (!supabaseKey) {
-    console.error('[obtenerEntregasPorRangoFechas] No hay clave de Supabase. usarAdmin:', usarAdmin);
+    console.error('[obtenerEntregasPorUsuario] No hay clave de Supabase configurada');
     return [];
   }
 
