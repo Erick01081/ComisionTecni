@@ -35,9 +35,40 @@ function MisEntregasPage(): JSX.Element {
   /**
    * Formatea una fecha corta para móvil
    * 
+   * Parsea la fecha manualmente para evitar problemas de zona horaria.
+   * Si la fecha viene en formato YYYY-MM-DD, la parsea directamente.
+   * 
    * Complejidad: O(1)
+   * 
+   * @param fecha - Fecha en formato YYYY-MM-DD o ISO (string)
+   * @returns Fecha formateada (string)
    */
   const formatearFechaCorta = (fecha: string): string => {
+    // Si la fecha viene en formato YYYY-MM-DD, parsearla manualmente
+    // para evitar conversión de zona horaria
+    if (/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+      const [year, month, day] = fecha.split('-').map(Number);
+      const fechaLocal = new Date(year, month - 1, day); // month es 0-indexed
+      return fechaLocal.toLocaleDateString('es-CO', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    }
+    
+    // Si viene con hora, extraer solo la fecha y parsearla
+    const fechaSolo = fecha.split('T')[0].split(' ')[0];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(fechaSolo)) {
+      const [year, month, day] = fechaSolo.split('-').map(Number);
+      const fechaLocal = new Date(year, month - 1, day);
+      return fechaLocal.toLocaleDateString('es-CO', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    }
+    
+    // Fallback: usar new Date normalmente (para timestamps)
     return new Date(fecha).toLocaleDateString('es-CO', {
       year: 'numeric',
       month: 'short',
@@ -122,9 +153,40 @@ function MisEntregasPage(): JSX.Element {
   /**
    * Formatea una fecha en formato legible
    * 
+   * Parsea la fecha manualmente para evitar problemas de zona horaria.
+   * Si la fecha viene en formato YYYY-MM-DD, la parsea directamente.
+   * 
    * Complejidad: O(1)
+   * 
+   * @param fecha - Fecha en formato YYYY-MM-DD o ISO (string)
+   * @returns Fecha formateada (string)
    */
   const formatearFecha = (fecha: string): string => {
+    // Si la fecha viene en formato YYYY-MM-DD, parsearla manualmente
+    // para evitar conversión de zona horaria
+    if (/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+      const [year, month, day] = fecha.split('-').map(Number);
+      const fechaLocal = new Date(year, month - 1, day); // month es 0-indexed
+      return fechaLocal.toLocaleDateString('es-CO', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    }
+    
+    // Si viene con hora, extraer solo la fecha y parsearla
+    const fechaSolo = fecha.split('T')[0].split(' ')[0];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(fechaSolo)) {
+      const [year, month, day] = fechaSolo.split('-').map(Number);
+      const fechaLocal = new Date(year, month - 1, day);
+      return fechaLocal.toLocaleDateString('es-CO', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    }
+    
+    // Fallback: usar new Date normalmente (para timestamps)
     return new Date(fecha).toLocaleDateString('es-CO', {
       year: 'numeric',
       month: 'long',
