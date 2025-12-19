@@ -61,3 +61,5 @@ $$;
 -- Permitir que los usuarios autenticados ejecuten esta función
 GRANT EXECUTE ON FUNCTION insertar_entrega TO authenticated;
 
+
+

@@ -22,6 +22,8 @@ ALTER TABLE entregas ENABLE ROW LEVEL SECURITY;
 -- Eliminar políticas existentes si existen
 DROP POLICY IF EXISTS "Los usuarios solo pueden ver sus propias entregas" ON entregas;
 DROP POLICY IF EXISTS "Los usuarios solo pueden insertar sus propias entregas" ON entregas;
+DROP POLICY IF EXISTS "Los usuarios solo pueden actualizar sus propias entregas" ON entregas;
+DROP POLICY IF EXISTS "Los usuarios solo pueden eliminar sus propias entregas" ON entregas;
 DROP POLICY IF EXISTS "Los administradores pueden ver todas las entregas" ON entregas;
 
 -- Política: Los usuarios solo pueden ver sus propias entregas
@@ -35,6 +37,19 @@ CREATE POLICY "Los usuarios solo pueden insertar sus propias entregas"
 ON entregas
 FOR INSERT
 WITH CHECK (auth.uid() = user_id);
+
+-- Política: Los usuarios solo pueden actualizar sus propias entregas
+CREATE POLICY "Los usuarios solo pueden actualizar sus propias entregas"
+ON entregas
+FOR UPDATE
+USING (auth.uid() = user_id)
+WITH CHECK (auth.uid() = user_id);
+
+-- Política: Los usuarios solo pueden eliminar sus propias entregas
+CREATE POLICY "Los usuarios solo pueden eliminar sus propias entregas"
+ON entregas
+FOR DELETE
+USING (auth.uid() = user_id);
 
 -- Nota: Para que los administradores puedan ver todas las entregas,
 -- se debe crear una función en Supabase que verifique si el usuario es administrador

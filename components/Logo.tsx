@@ -29,3 +29,5 @@ export default function Logo({ className = '', mostrarTexto = true }: { classNam
   );
 }
 
+
+

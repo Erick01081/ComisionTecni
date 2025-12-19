@@ -462,3 +462,213 @@ export async function calcularTotalGeneral(
   return entregas.reduce((total, entrega) => total + entrega.valor, 0);
 }
 
+/**
+ * Actualiza una entrega existente en la base de datos
+ * 
+ * Esta función actualiza los datos de una entrega existente.
+ * Solo el usuario propietario puede actualizar su propia entrega.
+ * Requiere un token de acceso para autenticar la petición y cumplir con RLS.
+ * 
+ * Complejidad: O(1) - Solo realiza una actualización
+ * 
+ * @param entrega_id - ID de la entrega a actualizar (string)
+ * @param user_id - ID del usuario propietario (string)
+ * @param fecha_domicilio - Nueva fecha del domicilio en formato YYYY-MM-DD (string)
+ * @param numero_factura - Nuevo número de factura (string)
+ * @param valor - Nuevo valor de la entrega (number)
+ * @param accessToken - Token de acceso de Supabase para autenticar la petición (string, opcional)
+ * @returns La entrega actualizada (Entrega)
+ */
+export async function actualizarEntrega(
+  entrega_id: string,
+  user_id: string,
+  fecha_domicilio: string,
+  numero_factura: string,
+  valor: number,
+  accessToken?: string
+): Promise<Entrega> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Configuración de Supabase no encontrada');
+  }
+
+  // Normalizar la fecha
+  let fechaNormalizada = fecha_domicilio.trim();
+  if (fechaNormalizada.includes('T')) {
+    fechaNormalizada = fechaNormalizada.split('T')[0];
+  }
+  if (fechaNormalizada.includes(' ')) {
+    fechaNormalizada = fechaNormalizada.split(' ')[0];
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaNormalizada)) {
+    throw new Error(`Formato de fecha inválido: ${fecha_domicilio}. Se espera YYYY-MM-DD`);
+  }
+
+  // Crear cliente autenticado si se proporciona el token
+  let supabase;
+  if (accessToken) {
+    const { createClient } = await import('@supabase/supabase-js');
+    supabase = createClient(supabaseUrl, supabaseKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    });
+  } else {
+    supabase = createClient(supabaseUrl, supabaseKey);
+  }
+
+  // Log para depuración
+  console.log('[actualizarEntrega] Iniciando actualización:', {
+    entrega_id,
+    user_id,
+    fechaNormalizada,
+    numero_factura: numero_factura.trim(),
+    valor,
+    tieneToken: !!accessToken,
+  });
+
+  // Primero verificar que la entrega existe y pertenece al usuario
+  const { data: entregaExistente, error: errorVerificacion } = await supabase
+    .from(TABLA_ENTREGAS)
+    .select('id, user_id')
+    .eq('id', entrega_id)
+    .eq('user_id', user_id);
+
+  console.log('[actualizarEntrega] Verificación:', {
+    entregaExistente,
+    errorVerificacion,
+    cantidad: entregaExistente?.length || 0,
+  });
+
+  if (errorVerificacion) {
+    console.error('[actualizarEntrega] Error al verificar entrega:', errorVerificacion);
+    throw new Error(`Error al verificar entrega: ${errorVerificacion.message}`);
+  }
+
+  if (!entregaExistente || entregaExistente.length === 0) {
+    console.error('[actualizarEntrega] Entrega no encontrada o sin permisos');
+    throw new Error('No se encontró la entrega o no tienes permisos para actualizarla');
+  }
+
+  // Realizar la actualización
+  const { data, error } = await supabase
+    .from(TABLA_ENTREGAS)
+    .update({
+      fecha_domicilio: fechaNormalizada,
+      numero_factura: numero_factura.trim(),
+      valor: valor,
+    })
+    .eq('id', entrega_id)
+    .eq('user_id', user_id) // Asegurar que solo el propietario pueda actualizar
+    .select();
+
+  console.log('[actualizarEntrega] Resultado de actualización:', {
+    data,
+    error,
+    cantidadActualizada: data?.length || 0,
+  });
+
+  if (error) {
+    console.error('[actualizarEntrega] Error al actualizar entrega en Supabase:', error);
+    throw new Error(`Error de Supabase: ${error.message}`);
+  }
+
+  if (!data || data.length === 0) {
+    console.error('[actualizarEntrega] No se devolvieron datos después de la actualización');
+    // Intentar obtener la entrega actualizada para verificar
+    const { data: entregaActualizada, error: errorConsulta } = await supabase
+      .from(TABLA_ENTREGAS)
+      .select('*')
+      .eq('id', entrega_id)
+      .eq('user_id', user_id)
+      .single();
+    
+    if (errorConsulta) {
+      console.error('[actualizarEntrega] Error al consultar después de actualizar:', errorConsulta);
+      throw new Error('No se pudo actualizar la entrega. Verifica tus permisos.');
+    }
+    
+    if (entregaActualizada) {
+      console.log('[actualizarEntrega] Entrega encontrada después de actualizar, pero no devuelta por UPDATE');
+      return entregaActualizada as Entrega;
+    }
+    
+    throw new Error('No se pudo actualizar la entrega');
+  }
+
+  if (data.length > 1) {
+    console.warn('[actualizarEntrega] Se actualizaron múltiples entregas, esto no debería pasar');
+  }
+
+  return data[0] as Entrega;
+}
+
+/**
+ * Elimina una entrega de la base de datos
+ * 
+ * Esta función elimina una entrega existente.
+ * Solo el usuario propietario puede eliminar su propia entrega.
+ * Requiere un token de acceso para autenticar la petición y cumplir con RLS.
+ * 
+ * Complejidad: O(1) - Solo realiza una eliminación
+ * 
+ * @param entrega_id - ID de la entrega a eliminar (string)
+ * @param user_id - ID del usuario propietario (string)
+ * @param accessToken - Token de acceso de Supabase para autenticar la petición (string, opcional)
+ * @returns true si se eliminó correctamente
+ */
+export async function eliminarEntrega(
+  entrega_id: string,
+  user_id: string,
+  accessToken?: string
+): Promise<boolean> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Configuración de Supabase no encontrada');
+  }
+
+  // Crear cliente autenticado si se proporciona el token
+  let supabase;
+  if (accessToken) {
+    const { createClient } = await import('@supabase/supabase-js');
+    supabase = createClient(supabaseUrl, supabaseKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    });
+  } else {
+    supabase = createClient(supabaseUrl, supabaseKey);
+  }
+
+  const { error } = await supabase
+    .from(TABLA_ENTREGAS)
+    .delete()
+    .eq('id', entrega_id)
+    .eq('user_id', user_id); // Asegurar que solo el propietario pueda eliminar
+
+  if (error) {
+    console.error('Error al eliminar entrega en Supabase:', error);
+    throw new Error(`Error de Supabase: ${error.message}`);
+  }
+
+  return true;
+}
+
+
+

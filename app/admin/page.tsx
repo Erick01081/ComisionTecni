@@ -6,6 +6,7 @@ import ProtegerRuta from '@/components/ProtegerRuta';
 import Navegacion from '@/components/Navegacion';
 import { obtenerUsuarioActual } from '@/lib/auth';
 import { EntregaConUsuario } from '@/types/entrega';
+import * as XLSX from 'xlsx';
 
 /**
  * Página de administrador para consultar todas las entregas
@@ -96,34 +97,93 @@ function AdminPage(): JSX.Element {
    * 
    * Complejidad: O(n) donde n es el número de entregas
    */
-  const exportarCSV = () => {
+  /**
+   * Exporta las entregas a un archivo Excel con múltiples hojas
+   * 
+   * Crea un archivo Excel con:
+   * - Hoja "Resumen": Totales por usuario y total general
+   * - Una hoja por cada usuario con sus entregas detalladas
+   * 
+   * Complejidad: O(n) donde n es el número de entregas
+   */
+  const exportarExcel = () => {
     if (entregas.length === 0) {
       alert('No hay datos para exportar');
       return;
     }
 
-    const headers = ['Usuario', 'Fecha Domicilio', 'Número Factura', 'Valor'];
-    const filas = entregas.map(e => [
-      e.usuario_email,
-      e.fecha_domicilio,
-      e.numero_factura,
-      e.valor.toString(),
-    ]);
+    const workbook = XLSX.utils.book_new();
 
-    const csv = [
-      headers.join(','),
-      ...filas.map(fila => fila.join(',')),
-    ].join('\n');
+    // Hoja 1: Resumen
+    const resumenData = [
+      ['RESUMEN DE ENTREGAS'],
+      [''],
+      ['Período:', `${fechaInicio} a ${fechaFin}`],
+      [''],
+      ['Usuario', 'Total'],
+      ...totalesPorUsuario.map(item => [
+        item.usuario_email,
+        item.total,
+      ]),
+      [''],
+      ['TOTAL GENERAL', totalGeneral],
+    ];
 
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `entregas_${fechaInicio}_${fechaFin}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const resumenSheet = XLSX.utils.aoa_to_sheet(resumenData);
+    
+    // Ajustar ancho de columnas
+    resumenSheet['!cols'] = [
+      { wch: 40 }, // Columna Usuario
+      { wch: 15 }, // Columna Total
+    ];
+
+    XLSX.utils.book_append_sheet(workbook, resumenSheet, 'Resumen');
+
+    // Agrupar entregas por usuario
+    const entregasPorUsuario: { [email: string]: EntregaConUsuario[] } = {};
+    entregas.forEach(entrega => {
+      if (!entregasPorUsuario[entrega.usuario_email]) {
+        entregasPorUsuario[entrega.usuario_email] = [];
+      }
+      entregasPorUsuario[entrega.usuario_email].push(entrega);
+    });
+
+    // Crear una hoja por cada usuario
+    Object.keys(entregasPorUsuario).forEach(email => {
+      const entregasUsuario = entregasPorUsuario[email];
+      const totalUsuario = entregasUsuario.reduce((suma, e) => suma + e.valor, 0);
+
+      // Limpiar el email para el nombre de la hoja (máximo 31 caracteres en Excel)
+      const nombreHoja = email.length > 31 ? email.substring(0, 28) + '...' : email;
+      
+      const usuarioData = [
+        [`ENTREGAS DE ${email.toUpperCase()}`],
+        [''],
+        ['Fecha Domicilio', 'Número Factura', 'Valor'],
+        ...entregasUsuario.map(e => [
+          e.fecha_domicilio,
+          e.numero_factura,
+          e.valor,
+        ]),
+        [''],
+        ['TOTAL', '', totalUsuario],
+      ];
+
+      const usuarioSheet = XLSX.utils.aoa_to_sheet(usuarioData);
+      
+      // Ajustar ancho de columnas
+      usuarioSheet['!cols'] = [
+        { wch: 18 }, // Fecha Domicilio
+        { wch: 20 }, // Número Factura
+        { wch: 15 }, // Valor
+      ];
+
+      XLSX.utils.book_append_sheet(workbook, usuarioSheet, nombreHoja);
+    });
+
+    // Generar el archivo Excel
+    const nombreArchivo = `entregas_${fechaInicio}_${fechaFin}.xlsx`;
+    XLSX.writeFile(workbook, nombreArchivo);
   };
 
   /**
@@ -281,10 +341,10 @@ function AdminPage(): JSX.Element {
               <div className="flex items-end sm:col-span-2 lg:col-span-1">
                 {entregas.length > 0 && (
                   <button
-                    onClick={exportarCSV}
+                    onClick={exportarExcel}
                     className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors text-base font-medium"
                   >
-                    Exportar CSV
+                    Exportar Excel
                   </button>
                 )}
               </div>
@@ -422,4 +482,6 @@ function AdminPage(): JSX.Element {
 }
 
 export default AdminPage;
+
+
 

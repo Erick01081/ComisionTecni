@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { crearEntrega, obtenerEntregasPorUsuario } from '@/lib/database';
+import { actualizarEntrega, eliminarEntrega } from '@/lib/database';
 import { obtenerUsuarioDesdeToken } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 
@@ -64,16 +64,21 @@ async function obtenerUsuarioDesdeRequest(request: NextRequest) {
 }
 
 /**
- * Maneja las peticiones GET para obtener las entregas del usuario autenticado
+ * Maneja las peticiones PUT para actualizar una entrega
  * 
- * Esta función verifica la autenticación del usuario y retorna todas sus entregas.
+ * Esta función verifica la autenticación del usuario y actualiza la entrega
+ * solo si el usuario es el propietario.
  * 
- * Complejidad: O(n) donde n es el número de entregas del usuario
+ * Complejidad: O(1) - Solo realiza una actualización
  * 
- * @param request - Objeto de petición de Next.js
- * @returns Respuesta con las entregas del usuario o error
+ * @param request - Objeto de petición de Next.js con los datos actualizados
+ * @param params - Parámetros de la ruta con el ID de la entrega
+ * @returns Respuesta con la entrega actualizada o error
  */
-export async function GET(request: NextRequest) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const usuario = await obtenerUsuarioDesdeRequest(request);
 
@@ -84,44 +89,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Obtener el token de acceso del header
-    const authHeader = request.headers.get('authorization');
-    const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : undefined;
-
-    const entregas = await obtenerEntregasPorUsuario(usuario.id, accessToken);
-
-    return NextResponse.json(entregas);
-  } catch (error: any) {
-    console.error('Error al obtener entregas:', error);
-    return NextResponse.json(
-      { error: 'Error al obtener entregas' },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * Maneja las peticiones POST para crear una nueva entrega
- * 
- * Esta función verifica la autenticación, valida los datos y crea una nueva entrega
- * asociada al usuario autenticado.
- * 
- * Complejidad: O(1) - Solo realiza una inserción
- * 
- * @param request - Objeto de petición de Next.js con los datos de la entrega
- * @returns Respuesta con la entrega creada o error
- */
-export async function POST(request: NextRequest) {
-  try {
-    const usuario = await obtenerUsuarioDesdeRequest(request);
-
-    if (!usuario) {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 401 }
-      );
-    }
-
+    const entregaId = params.id;
     const body = await request.json();
     const { fecha_domicilio, numero_factura, valor } = body;
 
@@ -149,58 +117,85 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Obtener el token de acceso del header
-    const authHeader = request.headers.get('authorization');
-    const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : undefined;
-    
-    // Intentar obtener el refresh token de las cookies
-    const refreshToken = request.cookies.get('sb-refresh-token')?.value || '';
-
-    // Asegurarse de que la fecha esté en formato YYYY-MM-DD sin conversión de zona horaria
-    // El input de tipo date devuelve YYYY-MM-DD directamente, así que solo necesitamos
-    // validar y normalizar si viene con formato diferente
+    // Normalizar la fecha
     let fechaNormalizada = String(fecha_domicilio).trim();
-    
-    // Si la fecha viene con hora o zona horaria, extraer solo la parte de la fecha
     if (fechaNormalizada.includes('T')) {
       fechaNormalizada = fechaNormalizada.split('T')[0];
     }
-    
-    // Si la fecha viene con espacio (formato alternativo), extraer solo la parte de la fecha
     if (fechaNormalizada.includes(' ')) {
       fechaNormalizada = fechaNormalizada.split(' ')[0];
     }
-    
-    // Validar que la fecha esté en formato YYYY-MM-DD
     if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaNormalizada)) {
       return NextResponse.json(
         { error: `Formato de fecha inválido: ${fecha_domicilio}. Se espera YYYY-MM-DD` },
         { status: 400 }
       );
     }
-    
-    // Log para depuración
-    console.log('[API POST /entregas] Fecha recibida del cliente:', fecha_domicilio);
-    console.log('[API POST /entregas] Fecha normalizada:', fechaNormalizada);
 
-    const entrega = await crearEntrega(
+    // Obtener el token de acceso del header
+    const authHeader = request.headers.get('authorization');
+    const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : undefined;
+
+    const entrega = await actualizarEntrega(
+      entregaId,
       usuario.id,
       fechaNormalizada,
       numeroFacturaTrim,
       valorNumerico,
-      accessToken,
-      refreshToken
+      accessToken
     );
 
-    return NextResponse.json(entrega, { status: 201 });
+    return NextResponse.json(entrega);
   } catch (error: any) {
-    console.error('Error al crear entrega:', error);
+    console.error('Error al actualizar entrega:', error);
     return NextResponse.json(
-      { error: error.message || 'Error al crear entrega' },
+      { error: error.message || 'Error al actualizar entrega' },
       { status: 500 }
     );
   }
 }
 
+/**
+ * Maneja las peticiones DELETE para eliminar una entrega
+ * 
+ * Esta función verifica la autenticación del usuario y elimina la entrega
+ * solo si el usuario es el propietario.
+ * 
+ * Complejidad: O(1) - Solo realiza una eliminación
+ * 
+ * @param request - Objeto de petición de Next.js
+ * @param params - Parámetros de la ruta con el ID de la entrega
+ * @returns Respuesta de éxito o error
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const usuario = await obtenerUsuarioDesdeRequest(request);
 
+    if (!usuario) {
+      return NextResponse.json(
+        { error: 'No autorizado' },
+        { status: 401 }
+      );
+    }
+
+    const entregaId = params.id;
+
+    // Obtener el token de acceso del header
+    const authHeader = request.headers.get('authorization');
+    const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : undefined;
+
+    await eliminarEntrega(entregaId, usuario.id, accessToken);
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error('Error al eliminar entrega:', error);
+    return NextResponse.json(
+      { error: error.message || 'Error al eliminar entrega' },
+      { status: 500 }
+    );
+  }
+}
 
