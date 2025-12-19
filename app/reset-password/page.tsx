@@ -23,35 +23,228 @@ function ResetPasswordForm(): JSX.Element {
   useEffect(() => {
     /**
      * Verifica si hay un token de recuperación válido en la URL
+     * Supabase procesa automáticamente el hash cuando se carga la página
      * 
-     * Complejidad: O(1) - Solo verifica parámetros de URL
+     * Complejidad: O(1) - Solo verifica la sesión y parámetros de URL
      */
+    let subscription: any = null;
+    let timeoutId: NodeJS.Timeout | null = null;
+    let isMounted = true;
+
     async function verificarToken() {
       const supabase = obtenerClienteSupabase();
       if (!supabase) {
-        setError('Error de configuración');
-        setTokenValido(false);
+        if (isMounted) {
+          setError('Error de configuración');
+          setTokenValido(false);
+        }
         return;
       }
 
-      // Verificar si hay un hash de token en la URL (Supabase lo envía así)
+      // Verificar si hay un hash de token en la URL (Supabase lo envía así después de redirigir)
       const hash = window.location.hash;
-      if (hash && hash.includes('access_token')) {
+      const tieneHash = hash && (hash.includes('access_token') || hash.includes('type=recovery'));
+      
+      // También verificar parámetros de consulta (por si acaso)
+      const accessToken = searchParams.get('access_token');
+      const refreshToken = searchParams.get('refresh_token');
+      const tieneQueryParams = accessToken && refreshToken;
+
+      console.log('[ResetPassword] Estado inicial:', {
+        tieneHash: !!tieneHash,
+        hash: hash ? hash.substring(0, 50) + '...' : null,
+        tieneQueryParams: !!tieneQueryParams,
+        urlCompleta: window.location.href.substring(0, 100) + '...'
+      });
+
+      if (!tieneHash && !tieneQueryParams) {
+        // No hay token en la URL - puede ser que Supabase aún no haya redirigido
+        // Esperar un momento para ver si Supabase procesa automáticamente el hash
+        console.log('[ResetPassword] No se encontraron tokens, esperando procesamiento automático...');
+        
+        // Esperar un poco más para que Supabase procese si hay un hash que aún no se detectó
+        timeoutId = setTimeout(() => {
+          if (!isMounted) return;
+          
+          const hashRetry = window.location.hash;
+          const tieneHashRetry = hashRetry && (hashRetry.includes('access_token') || hashRetry.includes('type=recovery'));
+          
+          if (!tieneHashRetry && !tieneQueryParams) {
+            console.log('[ResetPassword] No se encontraron tokens después de esperar');
+            setError('No se encontró un token de recuperación en la URL. Por favor, usa el enlace que se envió a tu correo electrónico.');
+            setTokenValido(false);
+          }
+        }, 500);
+        
+        return;
+      }
+
+      // Escuchar cambios en el estado de autenticación
+      // Esto captura cuando Supabase procesa automáticamente el hash
+      try {
+        const authState = supabase.auth.onAuthStateChange(async (event, session) => {
+          console.log('[ResetPassword] Auth state change:', event, session ? 'tiene sesión' : 'sin sesión');
+          if (!isMounted) return;
+          
+          // PASSWORD_RECOVERY se dispara cuando Supabase procesa un token de recuperación
+          // SIGNED_IN se dispara cuando se establece una sesión
+          if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            if (session) {
+              console.log('[ResetPassword] Sesión establecida por evento:', event);
+              setTokenValido(true);
+              // Limpiar el hash de la URL
+              const currentHash = window.location.hash;
+              if (currentHash) {
+                window.history.replaceState(null, '', window.location.pathname);
+              }
+            }
+          }
+        });
+        subscription = authState.data.subscription;
+      } catch (err) {
+        console.error('[ResetPassword] Error al configurar listener de auth:', err);
+      }
+
+      // Intentar procesar el hash manualmente si Supabase no lo hizo automáticamente
+      if (hash) {
+        try {
+          const params = new URLSearchParams(hash.substring(1));
+          const hashAccessToken = params.get('access_token');
+          const hashRefreshToken = params.get('refresh_token');
+          const type = params.get('type');
+          
+          console.log('[ResetPassword] Hash encontrado, type:', type);
+          
+          // Verificar que es un token de recuperación (o cualquier token válido)
+          if (hashAccessToken && hashRefreshToken) {
+            console.log('[ResetPassword] Intentando establecer sesión con hash');
+            const { error: sessionError, data } = await supabase.auth.setSession({
+              access_token: hashAccessToken,
+              refresh_token: hashRefreshToken,
+            });
+            
+            console.log('[ResetPassword] Resultado setSession:', { 
+              error: sessionError?.message, 
+              tieneSesion: !!data.session,
+              tipoError: sessionError?.name 
+            });
+            
+            if (!isMounted) return;
+            
+            if (!sessionError && data.session) {
+              setTokenValido(true);
+              // Limpiar el hash de la URL
+              window.history.replaceState(null, '', window.location.pathname);
+              return;
+            } else if (sessionError) {
+              console.error('[ResetPassword] Error al establecer sesión:', sessionError);
+              setError(sessionError.message || 'Token inválido o expirado. Por favor, solicita un nuevo enlace de recuperación.');
+              setTokenValido(false);
+              return;
+            }
+          } else {
+            console.log('[ResetPassword] Hash no contiene tokens válidos');
+          }
+        } catch (err: any) {
+          console.error('[ResetPassword] Error al procesar hash:', err);
+          if (isMounted) {
+            setError('Error al procesar el token de recuperación. Por favor, intenta nuevamente.');
+            setTokenValido(false);
+          }
+          return;
+        }
+      }
+
+      // Si hay query params, intentar establecer la sesión
+      if (tieneQueryParams && !tieneHash) {
+        try {
+          console.log('[ResetPassword] Intentando establecer sesión con query params');
+          const { error: sessionError, data } = await supabase.auth.setSession({
+            access_token: accessToken!,
+            refresh_token: refreshToken!,
+          });
+          
+          if (!isMounted) return;
+          
+          if (!sessionError && data.session) {
+            setTokenValido(true);
+            return;
+          } else if (sessionError) {
+            console.error('[ResetPassword] Error con query params:', sessionError);
+            setError(sessionError.message || 'Token inválido o expirado. Por favor, solicita un nuevo enlace de recuperación.');
+            setTokenValido(false);
+            return;
+          }
+        } catch (err: any) {
+          console.error('[ResetPassword] Error al procesar query params:', err);
+          if (isMounted) {
+            setError('Error al procesar el token de recuperación. Por favor, intenta nuevamente.');
+            setTokenValido(false);
+          }
+          return;
+        }
+      }
+
+      // Verificar si ya hay una sesión activa (puede que Supabase ya la haya procesado)
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('[ResetPassword] Sesión inicial:', session ? 'tiene sesión' : 'sin sesión');
+      if (!isMounted) return;
+      
+      if (session) {
+        console.log('[ResetPassword] Sesión encontrada, token válido');
         setTokenValido(true);
+        // Limpiar el hash si existe
+        if (hash) {
+          window.history.replaceState(null, '', window.location.pathname);
+        }
+        return;
+      }
+
+      // Si llegamos aquí y no hay sesión pero hay hash, esperar un poco más
+      // para que Supabase procese automáticamente el hash
+      if (hash) {
+        console.log('[ResetPassword] Hay hash pero no sesión, esperando procesamiento automático...');
+        timeoutId = setTimeout(async () => {
+          if (!isMounted) return;
+          
+          // Verificar nuevamente la sesión
+          const { data: { session: delayedSession } } = await supabase.auth.getSession();
+          console.log('[ResetPassword] Sesión después de delay:', delayedSession ? 'tiene sesión' : 'sin sesión');
+          
+          if (!isMounted) return;
+          
+          if (delayedSession) {
+            setTokenValido(true);
+            // Limpiar el hash
+            window.history.replaceState(null, '', window.location.pathname);
+          } else {
+            // Si aún no hay sesión, el token puede ser inválido o la URL no está configurada
+            console.error('[ResetPassword] No se pudo establecer sesión después de esperar');
+            setError('Token de recuperación inválido o expirado. Por favor, verifica que la URL de redirección esté configurada en Supabase y solicita un nuevo enlace de recuperación.');
+            setTokenValido(false);
+          }
+        }, 2000);
       } else {
-        // También verificar parámetros de consulta
-        const accessToken = searchParams.get('access_token');
-        const refreshToken = searchParams.get('refresh_token');
-        if (accessToken && refreshToken) {
-          setTokenValido(true);
-        } else {
-          setError('Token de recuperación inválido o expirado. Por favor, solicita un nuevo enlace de recuperación.');
+        // No hay hash ni query params, no hay nada que procesar
+        if (isMounted) {
+          setError('No se encontró un token de recuperación en la URL. Por favor, usa el enlace que se envió a tu correo electrónico.');
           setTokenValido(false);
         }
       }
     }
 
     verificarToken();
+
+    // Cleanup
+    return () => {
+      isMounted = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      if (subscription) {
+        subscription.unsubscribe();
+      }
+    };
   }, [searchParams]);
 
   /**
@@ -88,37 +281,39 @@ function ResetPasswordForm(): JSX.Element {
         throw new Error('Error de configuración');
       }
 
-      // Obtener tokens de la URL
-      const hash = window.location.hash;
-      let accessToken = '';
-      let refreshToken = '';
+      // Verificar que hay una sesión activa (debería haberse establecido en verificarToken)
+      const { data: { session }, error: sessionCheckError } = await supabase.auth.getSession();
+      
+      if (sessionCheckError || !session) {
+        // Intentar obtener tokens de la URL como respaldo
+        const hash = window.location.hash;
+        let accessToken = '';
+        let refreshToken = '';
 
-      if (hash) {
-        // Parsear el hash de Supabase
-        const params = new URLSearchParams(hash.substring(1));
-        accessToken = params.get('access_token') || '';
-        refreshToken = params.get('refresh_token') || '';
-      } else {
-        // Intentar desde query params
-        accessToken = searchParams.get('access_token') || '';
-        refreshToken = searchParams.get('refresh_token') || '';
+        if (hash) {
+          const params = new URLSearchParams(hash.substring(1));
+          accessToken = params.get('access_token') || '';
+          refreshToken = params.get('refresh_token') || '';
+        } else {
+          accessToken = searchParams.get('access_token') || '';
+          refreshToken = searchParams.get('refresh_token') || '';
+        }
+
+        if (accessToken && refreshToken) {
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+          if (sessionError) {
+            throw new Error('Token inválido o expirado. Por favor, solicita un nuevo enlace de recuperación.');
+          }
+        } else {
+          throw new Error('No hay sesión activa. Por favor, usa el enlace de recuperación que se envió a tu correo.');
+        }
       }
 
-      if (!accessToken || !refreshToken) {
-        throw new Error('Token de recuperación inválido o expirado');
-      }
-
-      // Establecer la sesión con los tokens
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      });
-
-      if (sessionError) {
-        throw new Error('Token inválido o expirado. Por favor, solicita un nuevo enlace de recuperación.');
-      }
-
-      // Actualizar la contraseña
+      // Actualizar la contraseña (ahora debería haber una sesión activa)
       const { error: updateError } = await supabase.auth.updateUser({
         password: password,
       });
