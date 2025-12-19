@@ -58,10 +58,16 @@ function MisEntregasPage(): JSX.Element {
       const month = parseInt(partes[1], 10); // 1-12
       const day = parseInt(partes[2], 10); // 1-31
       
+      // Log para depuración
+      console.log('[formatearFechaCorta] Fecha recibida:', fechaStr);
+      console.log('[formatearFechaCorta] Fecha parseada:', { year, month, day });
+      
       // Formatear directamente desde el string sin usar Date
       // Esto garantiza que se muestre exactamente lo que está guardado
       const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-      return `${day} de ${meses[month - 1]} de ${year}`;
+      const resultado = `${day} de ${meses[month - 1]} de ${year}`;
+      console.log('[formatearFechaCorta] Resultado:', resultado);
+      return resultado;
     }
     
     // Fallback: usar new Date normalmente (para timestamps como created_at)
@@ -172,11 +178,17 @@ function MisEntregasPage(): JSX.Element {
       const month = parseInt(partes[1], 10); // 1-12
       const day = parseInt(partes[2], 10); // 1-31
       
+      // Log para depuración
+      console.log('[formatearFecha] Fecha recibida:', fechaStr);
+      console.log('[formatearFecha] Fecha parseada:', { year, month, day });
+      
       // Formatear directamente desde el string sin usar Date
       // Esto garantiza que se muestre exactamente lo que está guardado
       const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 
                     'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-      return `${day} de ${meses[month - 1]} de ${year}`;
+      const resultado = `${day} de ${meses[month - 1]} de ${year}`;
+      console.log('[formatearFecha] Resultado:', resultado);
+      return resultado;
     }
     
     // Fallback: usar new Date normalmente (para timestamps como created_at)
