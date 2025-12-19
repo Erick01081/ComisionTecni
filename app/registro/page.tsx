@@ -204,3 +204,4 @@ function RegistroPage(): JSX.Element {
 }
 
 export default RegistroPage;
+

@@ -211,3 +211,32 @@ export async function cerrarSesion(): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Envía un email de recuperación de contraseña
+ * 
+ * Esta función envía un email al usuario con un enlace para restablecer su contraseña.
+ * Supabase maneja el envío del email y la validación del token.
+ * 
+ * Complejidad: O(1) - Solo realiza una llamada a la API de Supabase
+ * 
+ * @param email - Email del usuario que quiere recuperar su contraseña (string)
+ * @returns Promise que se resuelve cuando se envía el email
+ * @throws Error si el email no es válido o si hay un problema al enviar el email
+ */
+export async function recuperarContrasena(email: string): Promise<void> {
+  const supabase = obtenerClienteSupabase();
+  
+  if (!supabase) {
+    throw new Error('Supabase no está configurado');
+  }
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${typeof window !== 'undefined' ? window.location.origin : ''}/reset-password`,
+  });
+
+  if (error) {
+    throw new Error(error.message || 'Error al enviar el email de recuperación');
+  }
+}
+

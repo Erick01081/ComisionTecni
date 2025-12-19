@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { obtenerUsuarioActual, cerrarSesion, esAdministrador } from '@/lib/auth';
+import Logo from '@/components/Logo';
 
 interface NavegacionProps {
   paginaActual: 'registro' | 'mis-entregas' | 'admin';
@@ -64,7 +65,7 @@ export default function Navegacion({ paginaActual }: NavegacionProps) {
         <div className="flex justify-between h-16">
           {/* Logo y título */}
           <div className="flex items-center">
-            <h1 className="text-lg sm:text-xl font-bold text-gray-800">Comisiones Tecni</h1>
+            <Logo className="text-base sm:text-lg" />
           </div>
 
           {/* Menú desktop - visible en pantallas medianas y grandes */}
@@ -206,3 +207,4 @@ export default function Navegacion({ paginaActual }: NavegacionProps) {
     </nav>
   );
 }
+

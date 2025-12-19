@@ -358,3 +358,4 @@ export async function calcularTotalGeneral(
 
   return entregas.reduce((total, entrega) => total + entrega.valor, 0);
 }
+

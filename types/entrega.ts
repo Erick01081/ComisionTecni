@@ -33,3 +33,4 @@ export interface TotalPorUsuario {
   usuario_email: string;
   total: number;
 }
+

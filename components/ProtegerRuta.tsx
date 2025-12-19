@@ -64,3 +64,4 @@ export default function ProtegerRuta({ children, requiereAdmin = false }: Proteg
 
   return <>{children}</>;
 }
+

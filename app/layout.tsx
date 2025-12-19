@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Comisiones Tecni - Tecnirecargas",
+  title: "Comisiones Tecnirecargas",
   description: "Sistema de registro y consulta de entregas con autenticación",
   viewport: "width=device-width, initial-scale=1, maximum-scale=5",
   icons: {
@@ -26,3 +26,4 @@ export default function RootLayout({
     </html>
   );
 }
+
