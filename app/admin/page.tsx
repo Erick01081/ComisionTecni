@@ -152,32 +152,29 @@ function AdminPage(): JSX.Element {
    * @returns Fecha formateada (string)
    */
   const formatearFecha = (fecha: string): string => {
-    // Si la fecha viene en formato YYYY-MM-DD, parsearla manualmente
-    // para evitar conversión de zona horaria
-    if (/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
-      const [year, month, day] = fecha.split('-').map(Number);
-      const fechaLocal = new Date(year, month - 1, day); // month es 0-indexed
-      return fechaLocal.toLocaleDateString('es-CO', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
-    }
+    // Convertir a string si viene como otro tipo
+    const fechaStr = String(fecha);
     
-    // Si viene con hora, extraer solo la fecha y parsearla
-    const fechaSolo = fecha.split('T')[0].split(' ')[0];
+    // Extraer solo la parte de la fecha (YYYY-MM-DD) si viene con hora
+    let fechaSolo = fechaStr.split('T')[0].split(' ')[0];
+    
+    // Validar formato YYYY-MM-DD - formatear directamente desde el string
+    // Esto evita completamente cualquier conversión de zona horaria
     if (/^\d{4}-\d{2}-\d{2}$/.test(fechaSolo)) {
-      const [year, month, day] = fechaSolo.split('-').map(Number);
-      const fechaLocal = new Date(year, month - 1, day);
-      return fechaLocal.toLocaleDateString('es-CO', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
+      const partes = fechaSolo.split('-');
+      const year = parseInt(partes[0], 10);
+      const month = parseInt(partes[1], 10); // 1-12
+      const day = parseInt(partes[2], 10); // 1-31
+      
+      // Formatear directamente desde el string sin usar Date
+      // Esto garantiza que se muestre exactamente lo que está guardado
+      const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 
+                    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+      return `${day} de ${meses[month - 1]} de ${year}`;
     }
     
-    // Fallback: usar new Date normalmente (para timestamps)
-    return new Date(fecha).toLocaleDateString('es-CO', {
+    // Fallback: usar new Date normalmente (para timestamps como created_at)
+    return new Date(fechaStr).toLocaleDateString('es-CO', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -196,32 +193,28 @@ function AdminPage(): JSX.Element {
    * @returns Fecha formateada (string)
    */
   const formatearFechaCorta = (fecha: string): string => {
-    // Si la fecha viene en formato YYYY-MM-DD, parsearla manualmente
-    // para evitar conversión de zona horaria
-    if (/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
-      const [year, month, day] = fecha.split('-').map(Number);
-      const fechaLocal = new Date(year, month - 1, day); // month es 0-indexed
-      return fechaLocal.toLocaleDateString('es-CO', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      });
-    }
+    // Convertir a string si viene como otro tipo
+    const fechaStr = String(fecha);
     
-    // Si viene con hora, extraer solo la fecha y parsearla
-    const fechaSolo = fecha.split('T')[0].split(' ')[0];
+    // Extraer solo la parte de la fecha (YYYY-MM-DD) si viene con hora
+    let fechaSolo = fechaStr.split('T')[0].split(' ')[0];
+    
+    // Validar formato YYYY-MM-DD - formatear directamente desde el string
+    // Esto evita completamente cualquier conversión de zona horaria
     if (/^\d{4}-\d{2}-\d{2}$/.test(fechaSolo)) {
-      const [year, month, day] = fechaSolo.split('-').map(Number);
-      const fechaLocal = new Date(year, month - 1, day);
-      return fechaLocal.toLocaleDateString('es-CO', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      });
+      const partes = fechaSolo.split('-');
+      const year = parseInt(partes[0], 10);
+      const month = parseInt(partes[1], 10); // 1-12
+      const day = parseInt(partes[2], 10); // 1-31
+      
+      // Formatear directamente desde el string sin usar Date
+      // Esto garantiza que se muestre exactamente lo que está guardado
+      const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+      return `${day} de ${meses[month - 1]} de ${year}`;
     }
     
-    // Fallback: usar new Date normalmente (para timestamps)
-    return new Date(fecha).toLocaleDateString('es-CO', {
+    // Fallback: usar new Date normalmente (para timestamps como created_at)
+    return new Date(fechaStr).toLocaleDateString('es-CO', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
