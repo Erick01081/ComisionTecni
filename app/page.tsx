@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { iniciarSesion, registrarUsuario, obtenerUsuarioActual, recuperarContrasena } from '@/lib/auth';
+import { iniciarSesion, registrarUsuario, obtenerUsuarioActual, recuperarContrasena, obtenerClienteSupabase } from '@/lib/auth';
 import Logo from '@/components/Logo';
 
 /**
@@ -27,6 +27,17 @@ export default function LoginPage(): JSX.Element {
 
   useEffect(() => {
     async function verificarSesion() {
+      const supabase = obtenerClienteSupabase();
+      if (!supabase) return;
+      
+      // Verificar si hay un hash de recuperación en la URL
+      // Si hay, redirigir a reset-password en lugar de permitir acceso
+      const hash = typeof window !== 'undefined' ? window.location.hash : '';
+      if (hash && (hash.includes('access_token') || hash.includes('type=recovery'))) {
+        router.push('/reset-password');
+        return;
+      }
+      
       const usuario = await obtenerUsuarioActual();
       if (usuario) {
         router.push('/registro');

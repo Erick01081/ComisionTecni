@@ -101,3 +101,4 @@ Cuando haces clic en este enlace:
 
 - [Documentación de Supabase sobre Redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls)
 - [Documentación de Supabase sobre Password Reset](https://supabase.com/docs/guides/auth/auth-password-reset)
+

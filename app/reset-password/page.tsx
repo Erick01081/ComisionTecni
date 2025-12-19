@@ -19,6 +19,26 @@ function ResetPasswordForm(): JSX.Element {
   const [error, setError] = useState('');
   const [exito, setExito] = useState(false);
   const [tokenValido, setTokenValido] = useState<boolean | null>(null);
+  const [esRecuperacion, setEsRecuperacion] = useState(false);
+
+  // Prevenir navegación si hay una sesión de recuperación activa
+  useEffect(() => {
+    if (esRecuperacion && tokenValido) {
+      // Prevenir que el usuario navegue a otras páginas mientras está en recuperación
+      const manejarAntesDeSalir = (e: BeforeUnloadEvent) => {
+        if (!exito) {
+          e.preventDefault();
+          e.returnValue = '';
+        }
+      };
+      
+      window.addEventListener('beforeunload', manejarAntesDeSalir);
+      
+      return () => {
+        window.removeEventListener('beforeunload', manejarAntesDeSalir);
+      };
+    }
+  }, [esRecuperacion, tokenValido, exito]);
 
   useEffect(() => {
     /**
@@ -91,11 +111,17 @@ function ResetPasswordForm(): JSX.Element {
           if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
             if (session) {
               console.log('[ResetPassword] Sesión establecida por evento:', event);
-              setTokenValido(true);
-              // Limpiar el hash de la URL
+              // Solo marcar como válido si es PASSWORD_RECOVERY o si hay hash de recuperación
               const currentHash = window.location.hash;
-              if (currentHash) {
-                window.history.replaceState(null, '', window.location.pathname);
+              const esRecuperacionHash = currentHash && (currentHash.includes('type=recovery') || currentHash.includes('access_token'));
+              
+              if (event === 'PASSWORD_RECOVERY' || esRecuperacionHash) {
+                setTokenValido(true);
+                setEsRecuperacion(true);
+                // Limpiar el hash de la URL
+                if (currentHash) {
+                  window.history.replaceState(null, '', window.location.pathname);
+                }
               }
             }
           }
@@ -133,6 +159,7 @@ function ResetPasswordForm(): JSX.Element {
             
             if (!sessionError && data.session) {
               setTokenValido(true);
+              setEsRecuperacion(true); // Marcar que es un flujo de recuperación
               // Limpiar el hash de la URL
               window.history.replaceState(null, '', window.location.pathname);
               return;
@@ -168,6 +195,7 @@ function ResetPasswordForm(): JSX.Element {
           
           if (!sessionError && data.session) {
             setTokenValido(true);
+            setEsRecuperacion(true);
             return;
           } else if (sessionError) {
             console.error('[ResetPassword] Error con query params:', sessionError);
@@ -191,13 +219,24 @@ function ResetPasswordForm(): JSX.Element {
       if (!isMounted) return;
       
       if (session) {
-        console.log('[ResetPassword] Sesión encontrada, token válido');
-        setTokenValido(true);
-        // Limpiar el hash si existe
-        if (hash) {
-          window.history.replaceState(null, '', window.location.pathname);
+        // Solo permitir si hay hash de recuperación o si es una sesión de recuperación
+        const esRecuperacionHash = hash && (hash.includes('type=recovery') || hash.includes('access_token'));
+        if (esRecuperacionHash) {
+          console.log('[ResetPassword] Sesión encontrada con hash de recuperación');
+          setTokenValido(true);
+          setEsRecuperacion(true);
+          // Limpiar el hash si existe
+          if (hash) {
+            window.history.replaceState(null, '', window.location.pathname);
+          }
+          return;
+        } else {
+          // Si hay sesión pero no es de recuperación, redirigir al login
+          // porque el usuario no debería estar aquí sin un token de recuperación
+          console.log('[ResetPassword] Sesión encontrada pero no es de recuperación, redirigiendo');
+          router.push('/');
+          return;
         }
-        return;
       }
 
       // Si llegamos aquí y no hay sesión pero hay hash, esperar un poco más
@@ -215,6 +254,7 @@ function ResetPasswordForm(): JSX.Element {
           
           if (delayedSession) {
             setTokenValido(true);
+            setEsRecuperacion(true);
             // Limpiar el hash
             window.history.replaceState(null, '', window.location.pathname);
           } else {
@@ -321,6 +361,10 @@ function ResetPasswordForm(): JSX.Element {
       if (updateError) {
         throw new Error(updateError.message || 'Error al actualizar la contraseña');
       }
+
+      // Cerrar la sesión de recuperación después de cambiar la contraseña
+      // Esto fuerza al usuario a iniciar sesión con la nueva contraseña
+      await supabase.auth.signOut();
 
       setExito(true);
       
@@ -490,3 +534,4 @@ export default function ResetPasswordPage(): JSX.Element {
     </Suspense>
   );
 }
+
