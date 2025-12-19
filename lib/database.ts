@@ -51,9 +51,26 @@ export async function crearEntrega(
   accessToken?: string,
   refreshToken?: string
 ): Promise<Entrega> {
-  // Normalizar la fecha para que solo contenga YYYY-MM-DD (sin hora)
+  // Normalizar la fecha para que solo contenga YYYY-MM-DD (sin hora ni zona horaria)
   // Esto es necesario porque la columna en la BD es de tipo DATE
-  const fechaNormalizada = fecha_domicilio.split('T')[0];
+  // El input de tipo date devuelve YYYY-MM-DD directamente, así que solo necesitamos
+  // extraer la parte de la fecha si viene con hora (por si acaso)
+  let fechaNormalizada = fecha_domicilio.trim();
+  
+  // Si la fecha viene con hora o zona horaria, extraer solo la parte de la fecha
+  if (fechaNormalizada.includes('T')) {
+    fechaNormalizada = fechaNormalizada.split('T')[0];
+  }
+  
+  // Si la fecha viene con espacio (formato alternativo), extraer solo la parte de la fecha
+  if (fechaNormalizada.includes(' ')) {
+    fechaNormalizada = fechaNormalizada.split(' ')[0];
+  }
+  
+  // Validar que la fecha esté en formato YYYY-MM-DD
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaNormalizada)) {
+    throw new Error(`Formato de fecha inválido: ${fecha_domicilio}. Se espera YYYY-MM-DD`);
+  }
 
   const nuevaEntrega: Entrega = {
     id: Date.now().toString() + Math.random().toString(36).substr(2, 9),

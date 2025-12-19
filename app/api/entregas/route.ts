@@ -156,9 +156,32 @@ export async function POST(request: NextRequest) {
     // Intentar obtener el refresh token de las cookies
     const refreshToken = request.cookies.get('sb-refresh-token')?.value || '';
 
+    // Asegurarse de que la fecha esté en formato YYYY-MM-DD sin conversión de zona horaria
+    // El input de tipo date devuelve YYYY-MM-DD directamente, así que solo necesitamos
+    // validar y normalizar si viene con formato diferente
+    let fechaNormalizada = String(fecha_domicilio).trim();
+    
+    // Si la fecha viene con hora o zona horaria, extraer solo la parte de la fecha
+    if (fechaNormalizada.includes('T')) {
+      fechaNormalizada = fechaNormalizada.split('T')[0];
+    }
+    
+    // Si la fecha viene con espacio (formato alternativo), extraer solo la parte de la fecha
+    if (fechaNormalizada.includes(' ')) {
+      fechaNormalizada = fechaNormalizada.split(' ')[0];
+    }
+    
+    // Validar que la fecha esté en formato YYYY-MM-DD
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaNormalizada)) {
+      return NextResponse.json(
+        { error: `Formato de fecha inválido: ${fecha_domicilio}. Se espera YYYY-MM-DD` },
+        { status: 400 }
+      );
+    }
+
     const entrega = await crearEntrega(
       usuario.id,
-      fecha_domicilio,
+      fechaNormalizada,
       numeroFacturaTrim,
       valorNumerico,
       accessToken,

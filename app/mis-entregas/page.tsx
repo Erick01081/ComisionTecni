@@ -142,7 +142,7 @@ function MisEntregasPage(): JSX.Element {
             <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">Mis Entregas</h2>
 
             <div className="mb-4 sm:mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-              <div>
+              <div className="w-full min-w-0">
                 <label htmlFor="fecha_inicio" className="block text-sm font-medium text-gray-700 mb-2">
                   Fecha Inicio
                 </label>
@@ -151,10 +151,10 @@ function MisEntregasPage(): JSX.Element {
                   type="date"
                   value={fechaInicio}
                   onChange={(e) => setFechaInicio(e.target.value)}
-                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900"
+                  className="w-full px-3 sm:px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900"
                 />
               </div>
-              <div>
+              <div className="w-full min-w-0">
                 <label htmlFor="fecha_fin" className="block text-sm font-medium text-gray-700 mb-2">
                   Fecha Fin
                 </label>
@@ -163,7 +163,7 @@ function MisEntregasPage(): JSX.Element {
                   type="date"
                   value={fechaFin}
                   onChange={(e) => setFechaFin(e.target.value)}
-                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900"
+                  className="w-full px-3 sm:px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900"
                 />
               </div>
               <div className="flex items-end sm:col-span-1">
