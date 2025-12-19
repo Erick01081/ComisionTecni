@@ -425,8 +425,8 @@ function ResetPasswordForm(): JSX.Element {
 
   if (tokenValido === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-100 px-4 py-8">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-6 sm:p-8">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-100 px-3 sm:px-4 py-4 sm:py-8 overflow-y-auto">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-4 sm:p-6 md:p-8 my-auto">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
             <p className="mt-4 text-gray-600">Verificando token...</p>
@@ -438,8 +438,8 @@ function ResetPasswordForm(): JSX.Element {
 
   if (tokenValido === false) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-100 px-4 py-8">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-6 sm:p-8">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-100 px-3 sm:px-4 py-4 sm:py-8 overflow-y-auto">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-4 sm:p-6 md:p-8 my-auto">
           <div className="text-center mb-6 sm:mb-8">
             <div className="flex justify-center mb-4">
               <Logo />
@@ -469,8 +469,8 @@ function ResetPasswordForm(): JSX.Element {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-100 px-4 py-8">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-6 sm:p-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-100 px-3 sm:px-4 py-4 sm:py-8 overflow-y-auto">
+      <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-4 sm:p-6 md:p-8 my-auto">
         <div className="text-center mb-6 sm:mb-8">
           <div className="flex justify-center mb-4">
             <Logo />
@@ -565,8 +565,8 @@ function ResetPasswordForm(): JSX.Element {
 export default function ResetPasswordPage(): JSX.Element {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-100 px-4 py-8">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-6 sm:p-8">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-100 px-3 sm:px-4 py-4 sm:py-8 overflow-y-auto">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-4 sm:p-6 md:p-8 my-auto">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
             <p className="mt-4 text-gray-600">Cargando...</p>

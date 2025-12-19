@@ -67,5 +67,38 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   button {
     min-height: 44px; /* Tamaño mínimo recomendado para tocar */
   }
+
+  /* Asegurar que los formularios no se salgan de la pantalla */
+  form {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  /* Asegurar que los contenedores permitan scroll */
+  .min-h-screen {
+    min-height: 100vh;
+    height: auto;
+  }
+
+  /* Reducir padding excesivo en móviles pequeños */
+  @media (max-height: 600px) {
+    .min-h-screen {
+      padding-top: 1rem;
+      padding-bottom: 1rem;
+    }
+  }
+}
+
+/* Prevenir que el contenido se salga de la pantalla */
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  position: relative;
+}
+
+/* Asegurar que los contenedores principales permitan scroll vertical */
+.min-h-screen {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* Scroll suave en iOS */
 }
 

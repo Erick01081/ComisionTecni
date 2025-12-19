@@ -122,11 +122,11 @@ function RegistroPage(): JSX.Element {
 
   return (
     <ProtegerRuta>
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-100">
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-100 overflow-y-auto">
         <Navegacion paginaActual="registro" />
 
-        <div className="max-w-2xl mx-auto px-4 py-4 sm:py-8">
-          <div className="bg-white rounded-lg shadow-xl p-4 sm:p-6 md:p-8">
+        <div className="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
+          <div className="bg-white rounded-lg shadow-xl p-4 sm:p-6 md:p-8 mb-4">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">Registrar Nueva Entrega</h2>
 
             <form onSubmit={manejarSubmit} className="space-y-4 sm:space-y-6">
