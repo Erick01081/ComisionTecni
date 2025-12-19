@@ -1,20 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { obtenerClienteSupabase } from '@/lib/auth';
 import Logo from '@/components/Logo';
 
 /**
- * Página de restablecimiento de contraseña
- * 
- * Esta página permite a los usuarios restablecer su contraseña después de
- * hacer clic en el enlace de recuperación enviado por email. Verifica el token
- * de Supabase y permite establecer una nueva contraseña.
+ * Componente interno de restablecimiento de contraseña
  * 
  * Complejidad: O(1) - Solo maneja el estado del formulario y una llamada de actualización
  */
-export default function ResetPasswordPage(): JSX.Element {
+function ResetPasswordForm(): JSX.Element {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [password, setPassword] = useState('');
@@ -271,5 +267,31 @@ export default function ResetPasswordPage(): JSX.Element {
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Página de restablecimiento de contraseña
+ * 
+ * Esta página permite a los usuarios restablecer su contraseña después de
+ * hacer clic en el enlace de recuperación enviado por email. Verifica el token
+ * de Supabase y permite establecer una nueva contraseña.
+ * 
+ * Complejidad: O(1) - Solo renderiza el componente con Suspense
+ */
+export default function ResetPasswordPage(): JSX.Element {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-100 px-4 py-8">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-6 sm:p-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Cargando...</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }
