@@ -23,13 +23,11 @@ function ResetPasswordForm(): JSX.Element {
 
   // Prevenir navegación si hay una sesión de recuperación activa
   useEffect(() => {
-    if (esRecuperacion && tokenValido) {
+    if (esRecuperacion && tokenValido && !exito) {
       // Prevenir que el usuario navegue a otras páginas mientras está en recuperación
       const manejarAntesDeSalir = (e: BeforeUnloadEvent) => {
-        if (!exito) {
-          e.preventDefault();
-          e.returnValue = '';
-        }
+        e.preventDefault();
+        e.returnValue = '';
       };
       
       window.addEventListener('beforeunload', manejarAntesDeSalir);
@@ -52,6 +50,13 @@ function ResetPasswordForm(): JSX.Element {
     let isMounted = true;
 
     async function verificarToken() {
+      // Si ya tenemos un token válido y es recuperación, no verificar de nuevo
+      // Esto evita re-renderizados innecesarios
+      if (tokenValido === true && esRecuperacion) {
+        console.log('[ResetPassword] Token ya válido, omitiendo verificación');
+        return;
+      }
+
       const supabase = obtenerClienteSupabase();
       if (!supabase) {
         if (isMounted) {
@@ -157,10 +162,8 @@ function ResetPasswordForm(): JSX.Element {
               if (event === 'PASSWORD_RECOVERY' || esRecuperacionHash) {
                 setTokenValido(true);
                 setEsRecuperacion(true);
-                // Limpiar el hash de la URL
-                if (currentHash) {
-                  window.history.replaceState(null, '', window.location.pathname);
-                }
+                // NO limpiar el hash todavía - lo haremos después de cambiar la contraseña
+                // Esto evita que el componente pierda el estado al re-renderizarse
               }
             }
           }
@@ -199,8 +202,7 @@ function ResetPasswordForm(): JSX.Element {
             if (!sessionError && data.session) {
               setTokenValido(true);
               setEsRecuperacion(true); // Marcar que es un flujo de recuperación
-              // Limpiar el hash de la URL
-              window.history.replaceState(null, '', window.location.pathname);
+              // NO limpiar el hash todavía - lo haremos después de cambiar la contraseña
               return;
             } else if (sessionError) {
               console.error('[ResetPassword] Error al establecer sesión:', sessionError);
@@ -264,10 +266,7 @@ function ResetPasswordForm(): JSX.Element {
           console.log('[ResetPassword] Sesión encontrada con hash de recuperación');
           setTokenValido(true);
           setEsRecuperacion(true);
-          // Limpiar el hash si existe
-          if (hash) {
-            window.history.replaceState(null, '', window.location.pathname);
-          }
+          // NO limpiar el hash todavía - lo haremos después de cambiar la contraseña
           return;
         } else {
           // Si hay sesión pero no es de recuperación, redirigir al login
@@ -324,7 +323,7 @@ function ResetPasswordForm(): JSX.Element {
         subscription.unsubscribe();
       }
     };
-  }, [searchParams]);
+  }, [searchParams, tokenValido, esRecuperacion]); // Agregar dependencias para evitar re-ejecuciones innecesarias
 
   /**
    * Maneja el envío del formulario de restablecimiento de contraseña
@@ -404,6 +403,12 @@ function ResetPasswordForm(): JSX.Element {
       // Cerrar la sesión de recuperación después de cambiar la contraseña
       // Esto fuerza al usuario a iniciar sesión con la nueva contraseña
       await supabase.auth.signOut();
+
+      // Limpiar el hash de la URL ahora que la contraseña se cambió exitosamente
+      const hash = window.location.hash;
+      if (hash) {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
 
       setExito(true);
       
