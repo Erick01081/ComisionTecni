@@ -89,11 +89,29 @@ function RegistroPage(): JSX.Element {
         document.cookie = `sb-refresh-token=${refreshToken}; path=/; SameSite=Lax`;
       }
 
+      // Asegurarse de que la fecha se envíe exactamente como YYYY-MM-DD sin conversión
+      // El input de tipo date devuelve YYYY-MM-DD directamente, pero debemos asegurarnos
+      // de que no haya ninguna conversión de zona horaria
+      let fechaParaEnviar = fechaDomicilio.trim();
+      
+      // Si por alguna razón viene con hora o zona horaria, extraer solo la fecha
+      if (fechaParaEnviar.includes('T')) {
+        fechaParaEnviar = fechaParaEnviar.split('T')[0];
+      }
+      if (fechaParaEnviar.includes(' ')) {
+        fechaParaEnviar = fechaParaEnviar.split(' ')[0];
+      }
+      
+      // Validar formato YYYY-MM-DD
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaParaEnviar)) {
+        throw new Error('Formato de fecha inválido');
+      }
+
       const respuesta = await fetch('/api/entregas', {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          fecha_domicilio: fechaDomicilio,
+          fecha_domicilio: fechaParaEnviar, // Enviar la fecha normalizada como string
           numero_factura: numeroFacturaNumerico,
           valor: valorNumerico,
         }),

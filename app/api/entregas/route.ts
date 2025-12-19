@@ -178,6 +178,10 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    
+    // Log para depuración
+    console.log('[API POST /entregas] Fecha recibida del cliente:', fecha_domicilio);
+    console.log('[API POST /entregas] Fecha normalizada:', fechaNormalizada);
 
     const entrega = await crearEntrega(
       usuario.id,

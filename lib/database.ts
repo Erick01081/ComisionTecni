@@ -72,14 +72,20 @@ export async function crearEntrega(
     throw new Error(`Formato de fecha inválido: ${fecha_domicilio}. Se espera YYYY-MM-DD`);
   }
 
+  // Log para depuración
+  console.log('[crearEntrega] Fecha recibida:', fecha_domicilio);
+  console.log('[crearEntrega] Fecha normalizada:', fechaNormalizada);
+
   const nuevaEntrega: Entrega = {
     id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
     user_id,
-    fecha_domicilio: fechaNormalizada,
+    fecha_domicilio: fechaNormalizada, // Guardar como string YYYY-MM-DD sin conversión
     numero_factura,
     valor,
     created_at: new Date().toISOString(),
   };
+  
+  console.log('[crearEntrega] Objeto a insertar:', JSON.stringify(nuevaEntrega, null, 2));
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -120,15 +126,95 @@ export async function crearEntrega(
   }
 
   try {
+    // Intentar usar la función RPC si está disponible (más seguro para fechas)
+    // Si no está disponible, usar insert directo
+    try {
+      const { data: rpcData, error: rpcError } = await supabase.rpc('insertar_entrega', {
+        p_id: nuevaEntrega.id,
+        p_user_id: nuevaEntrega.user_id,
+        p_fecha_domicilio: fechaNormalizada, // Enviar como string YYYY-MM-DD
+        p_numero_factura: nuevaEntrega.numero_factura,
+        p_valor: nuevaEntrega.valor,
+        p_created_at: nuevaEntrega.created_at,
+      });
+      
+      if (!rpcError && rpcData && rpcData.length > 0) {
+        console.log('[crearEntrega] Fecha guardada usando RPC:', rpcData[0].fecha_domicilio);
+        return rpcData[0] as Entrega;
+      }
+      
+      // Si la función RPC no está disponible o falla, continuar con insert directo
+      console.log('[crearEntrega] RPC no disponible o falló, usando insert directo');
+    } catch (rpcErr) {
+      console.log('[crearEntrega] RPC no disponible, usando insert directo:', rpcErr);
+    }
+    
+    // Insertar directamente con la fecha como string YYYY-MM-DD
+    // PostgreSQL debería interpretar esto como DATE sin conversión de zona horaria
+    const objetoInsertar = {
+      id: nuevaEntrega.id,
+      user_id: nuevaEntrega.user_id,
+      fecha_domicilio: fechaNormalizada, // String YYYY-MM-DD
+      numero_factura: nuevaEntrega.numero_factura,
+      valor: nuevaEntrega.valor,
+      created_at: nuevaEntrega.created_at,
+    };
+    
+    console.log('[crearEntrega] Objeto a insertar:', JSON.stringify(objetoInsertar, null, 2));
+    
     const { data, error } = await supabase
       .from(TABLA_ENTREGAS)
-      .insert([nuevaEntrega])
+      .insert([objetoInsertar])
       .select()
       .single();
+    
+    console.log('[crearEntrega] Respuesta de Supabase:', { 
+      fechaEnviada: fechaNormalizada,
+      fechaRecibida: data?.fecha_domicilio,
+      error 
+    });
 
     if (error) {
       console.error('Error al crear entrega en Supabase:', error);
       throw new Error(`Error de Supabase: ${error.message}`);
+    }
+
+    // Verificar que la fecha se guardó correctamente
+    if (data) {
+      // Extraer solo la fecha si viene con hora (por si Supabase la devuelve como timestamp)
+      let fechaGuardada = String(data.fecha_domicilio);
+      if (fechaGuardada.includes('T')) {
+        fechaGuardada = fechaGuardada.split('T')[0];
+      }
+      if (fechaGuardada.includes(' ')) {
+        fechaGuardada = fechaGuardada.split(' ')[0];
+      }
+      
+      console.log('[crearEntrega] Comparación de fechas:');
+      console.log('[crearEntrega] - Fecha enviada:', fechaNormalizada);
+      console.log('[crearEntrega] - Fecha guardada (raw):', data.fecha_domicilio);
+      console.log('[crearEntrega] - Fecha guardada (normalizada):', fechaGuardada);
+      
+      // Si la fecha guardada es diferente, corregirla
+      if (fechaGuardada !== fechaNormalizada) {
+        console.warn('[crearEntrega] ADVERTENCIA: La fecha guardada difiere de la enviada');
+        console.warn('[crearEntrega] Corrigiendo fecha...');
+        
+        // Actualizar la fecha directamente
+        const { error: updateError, data: updateData } = await supabase
+          .from(TABLA_ENTREGAS)
+          .update({ fecha_domicilio: fechaNormalizada })
+          .eq('id', data.id)
+          .select()
+          .single();
+        
+        if (updateError) {
+          console.error('[crearEntrega] Error al corregir fecha:', updateError);
+        } else {
+          console.log('[crearEntrega] Fecha corregida exitosamente');
+          return updateData as Entrega;
+        }
+      }
     }
 
     return data as Entrega;
