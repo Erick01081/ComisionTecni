@@ -31,9 +31,20 @@ export default function LoginPage(): JSX.Element {
       if (!supabase) return;
       
       // Verificar si hay un hash de recuperación en la URL
-      // Si hay, redirigir a reset-password en lugar de permitir acceso
+      // Si hay, redirigir a reset-password con el hash completo
       const hash = typeof window !== 'undefined' ? window.location.hash : '';
       if (hash && (hash.includes('access_token') || hash.includes('type=recovery'))) {
+        // Preservar el hash completo al redirigir
+        router.push(`/reset-password${hash}`);
+        return;
+      }
+      
+      // También verificar si hay parámetros de recuperación en la URL
+      const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+      const tipoRecuperacion = urlParams?.get('type');
+      if (tipoRecuperacion === 'recovery') {
+        // Si viene de la página de verificación de Supabase, esperar a que redirija con hash
+        // o redirigir manualmente a reset-password
         router.push('/reset-password');
         return;
       }

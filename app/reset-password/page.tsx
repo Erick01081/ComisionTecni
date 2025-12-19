@@ -69,32 +69,71 @@ function ResetPasswordForm(): JSX.Element {
       const accessToken = searchParams.get('access_token');
       const refreshToken = searchParams.get('refresh_token');
       const tieneQueryParams = accessToken && refreshToken;
+      
+      // Verificar si hay parámetros de tipo recovery en la URL (puede venir de la página de verificación de Supabase)
+      const tipoRecuperacion = searchParams.get('type');
+      const tokenRecuperacion = searchParams.get('token');
+      const tieneParametrosRecuperacion = tipoRecuperacion === 'recovery' && tokenRecuperacion;
 
       console.log('[ResetPassword] Estado inicial:', {
         tieneHash: !!tieneHash,
         hash: hash ? hash.substring(0, 50) + '...' : null,
         tieneQueryParams: !!tieneQueryParams,
-        urlCompleta: window.location.href.substring(0, 100) + '...'
+        tieneParametrosRecuperacion: !!tieneParametrosRecuperacion,
+        tipoRecuperacion: tipoRecuperacion,
+        urlCompleta: window.location.href.substring(0, 150) + '...'
       });
 
-      if (!tieneHash && !tieneQueryParams) {
+      if (!tieneHash && !tieneQueryParams && !tieneParametrosRecuperacion) {
         // No hay token en la URL - puede ser que Supabase aún no haya redirigido
         // Esperar un momento para ver si Supabase procesa automáticamente el hash
         console.log('[ResetPassword] No se encontraron tokens, esperando procesamiento automático...');
         
-        // Esperar un poco más para que Supabase procese si hay un hash que aún no se detectó
+        // Esperar más tiempo para que Supabase procese el hash después de la redirección
         timeoutId = setTimeout(() => {
           if (!isMounted) return;
           
           const hashRetry = window.location.hash;
           const tieneHashRetry = hashRetry && (hashRetry.includes('access_token') || hashRetry.includes('type=recovery'));
           
-          if (!tieneHashRetry && !tieneQueryParams) {
+          // También verificar si hay parámetros en la URL que indiquen recuperación
+          const urlParams = new URLSearchParams(window.location.search);
+          const tipoRecuperacionRetry = urlParams.get('type');
+          const tokenRecuperacionRetry = urlParams.get('token');
+          const tieneParametrosRecuperacionRetry = tipoRecuperacionRetry === 'recovery' && tokenRecuperacionRetry;
+          
+          if (tieneHashRetry) {
+            // Si ahora hay hash, procesarlo
+            console.log('[ResetPassword] Hash encontrado después de esperar, procesando...');
+            setTokenValido(true);
+            setEsRecuperacion(true);
+            return;
+          } else if (tipoRecuperacionRetry === 'recovery' || tieneParametrosRecuperacionRetry) {
+            // Si hay parámetro type=recovery pero no hash aún, esperar un poco más
+            // Esto puede pasar cuando Supabase está procesando la redirección
+            console.log('[ResetPassword] Tipo recovery detectado en parámetros, esperando hash...');
+            setTimeout(() => {
+              if (!isMounted) return;
+              const hashFinal = window.location.hash;
+              if (hashFinal && hashFinal.includes('access_token')) {
+                console.log('[ResetPassword] Hash encontrado después de esperar');
+                setTokenValido(true);
+                setEsRecuperacion(true);
+              } else {
+                // Si aún no hay hash, puede ser que Supabase necesite más tiempo
+                // o que el token haya expirado
+                console.log('[ResetPassword] No se encontró hash después de esperar');
+                setError('No se pudo procesar el token de recuperación. Por favor, solicita un nuevo enlace.');
+                setTokenValido(false);
+              }
+            }, 2000);
+            return;
+          } else {
             console.log('[ResetPassword] No se encontraron tokens después de esperar');
             setError('No se encontró un token de recuperación en la URL. Por favor, usa el enlace que se envió a tu correo electrónico.');
             setTokenValido(false);
           }
-        }, 500);
+        }, 1000);
         
         return;
       }
