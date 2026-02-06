@@ -33,11 +33,9 @@ function RegistroPage(): JSX.Element {
     cargarUsuario();
 
     // Auto-seleccionar la fecha actual en zona horaria de Colombia
-    const fechaActualColombia = new Date().toLocaleDateString('en-CA', {
-      timeZone: 'America/Bogota',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
+    // Usar 'sv-SE' locale que siempre produce formato YYYY-MM-DD confiable
+    const fechaActualColombia = new Date().toLocaleDateString('sv-SE', {
+      timeZone: 'America/Bogota'
     });
     setFechaDomicilio(fechaActualColombia);
   }, []);
