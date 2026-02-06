@@ -31,6 +31,15 @@ function RegistroPage(): JSX.Element {
       setUsuario(user);
     }
     cargarUsuario();
+
+    // Auto-seleccionar la fecha actual en zona horaria de Colombia
+    const fechaActualColombia = new Date().toLocaleDateString('en-CA', {
+      timeZone: 'America/Bogota',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    setFechaDomicilio(fechaActualColombia);
   }, []);
 
   /**
