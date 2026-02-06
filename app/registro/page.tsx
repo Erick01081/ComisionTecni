@@ -31,6 +31,13 @@ function RegistroPage(): JSX.Element {
       setUsuario(user);
     }
     cargarUsuario();
+
+    // Auto-seleccionar la fecha actual en zona horaria de Colombia
+    // Usar 'sv-SE' locale que siempre produce formato YYYY-MM-DD confiable
+    const fechaActualColombia = new Date().toLocaleDateString('sv-SE', {
+      timeZone: 'America/Bogota'
+    });
+    setFechaDomicilio(fechaActualColombia);
   }, []);
 
   /**
