@@ -132,7 +132,6 @@ function RegistroPage(): JSX.Element {
 
       setExito(true);
       // Mantener la fecha para facilitar el registro de múltiples entregas el mismo día
-      // setFechaDomicilio(''); // No limpiar la fecha
       setNumeroFactura('');
       setValor('');
 
