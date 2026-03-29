@@ -7,7 +7,8 @@ CREATE OR REPLACE FUNCTION insertar_entrega(
   p_fecha_domicilio TEXT, -- Recibe como texto YYYY-MM-DD
   p_numero_factura TEXT,
   p_valor DECIMAL,
-  p_created_at TIMESTAMP WITH TIME ZONE
+  p_forma_pago TEXT DEFAULT NULL,
+  p_created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 )
 RETURNS TABLE (
   id TEXT,
@@ -15,6 +16,7 @@ RETURNS TABLE (
   fecha_domicilio DATE,
   numero_factura TEXT,
   valor DECIMAL,
+  forma_pago TEXT,
   created_at TIMESTAMP WITH TIME ZONE
 )
 LANGUAGE plpgsql
@@ -23,28 +25,26 @@ AS $$
 DECLARE
   v_fecha DATE;
 BEGIN
-  -- Convertir el texto a DATE directamente sin conversión de zona horaria
-  -- PostgreSQL interpretará YYYY-MM-DD como fecha local
   v_fecha := p_fecha_domicilio::DATE;
   
-  -- Insertar el registro
   INSERT INTO entregas (
     id,
     user_id,
     fecha_domicilio,
     numero_factura,
     valor,
+    forma_pago,
     created_at
   ) VALUES (
     p_id,
     p_user_id,
-    v_fecha, -- Usar la fecha convertida directamente
+    v_fecha,
     p_numero_factura,
     p_valor,
+    p_forma_pago,
     p_created_at
   );
   
-  -- Retornar el registro insertado
   RETURN QUERY
   SELECT 
     e.id,
@@ -52,6 +52,7 @@ BEGIN
     e.fecha_domicilio,
     e.numero_factura,
     e.valor,
+    e.forma_pago,
     e.created_at
   FROM entregas e
   WHERE e.id = p_id;

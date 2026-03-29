@@ -159,14 +159,15 @@ function AdminPage(): JSX.Element {
       const usuarioData = [
         [`ENTREGAS DE ${email.toUpperCase()}`],
         [''],
-        ['Fecha Domicilio', 'Número Factura', 'Valor'],
+        ['Fecha Domicilio', 'Número Factura', 'Valor', 'Forma de Pago'],
         ...entregasUsuario.map(e => [
           e.fecha_domicilio,
           e.numero_factura,
           e.valor,
+          e.forma_pago || '',
         ]),
         [''],
-        ['TOTAL', '', totalUsuario],
+        ['TOTAL', '', totalUsuario, ''],
       ];
 
       const usuarioSheet = XLSX.utils.aoa_to_sheet(usuarioData);
@@ -176,6 +177,7 @@ function AdminPage(): JSX.Element {
         { wch: 18 }, // Fecha Domicilio
         { wch: 20 }, // Número Factura
         { wch: 15 }, // Valor
+        { wch: 22 }, // Forma de Pago
       ];
 
       XLSX.utils.book_append_sheet(workbook, usuarioSheet, nombreHoja);
@@ -420,8 +422,13 @@ function AdminPage(): JSX.Element {
                           </div>
                           <p className="text-lg font-bold text-primary-600 ml-3">{formatearMoneda(entrega.valor)}</p>
                         </div>
-                        <div className="pt-2 border-t border-gray-200">
+                        <div className="pt-2 border-t border-gray-200 flex flex-wrap items-center gap-2">
                           <span className="text-xs text-gray-600">Factura: <span className="font-medium">{entrega.numero_factura}</span></span>
+                          {entrega.forma_pago && (
+                            <span className="inline-block px-2 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-700 rounded-full">
+                              {entrega.forma_pago}
+                            </span>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -443,6 +450,9 @@ function AdminPage(): JSX.Element {
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Valor
                           </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Forma de Pago
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
@@ -459,6 +469,15 @@ function AdminPage(): JSX.Element {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                               {formatearMoneda(entrega.valor)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                              {entrega.forma_pago ? (
+                                <span className="inline-block px-2 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-700 rounded-full">
+                                  {entrega.forma_pago}
+                                </span>
+                              ) : (
+                                <span className="text-gray-400">—</span>
+                              )}
                             </td>
                           </tr>
                         ))}

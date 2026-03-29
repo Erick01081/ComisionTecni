@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { fecha_domicilio, numero_factura, valor } = body;
+    const { fecha_domicilio, numero_factura, valor, forma_pago } = body;
 
     // Validaciones
     if (!fecha_domicilio || !numero_factura || valor === undefined) {
@@ -183,11 +183,16 @@ export async function POST(request: NextRequest) {
     console.log('[API POST /entregas] Fecha recibida del cliente:', fecha_domicilio);
     console.log('[API POST /entregas] Fecha normalizada:', fechaNormalizada);
 
+    const formaPagoNormalizada = forma_pago && typeof forma_pago === 'string' && forma_pago.trim() !== ''
+      ? forma_pago.trim()
+      : null;
+
     const entrega = await crearEntrega(
       usuario.id,
       fechaNormalizada,
       numeroFacturaTrim,
       valorNumerico,
+      formaPagoNormalizada,
       accessToken,
       refreshToken
     );

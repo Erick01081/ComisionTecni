@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import ProtegerRuta from '@/components/ProtegerRuta';
 import Navegacion from '@/components/Navegacion';
 import { obtenerUsuarioActual } from '@/lib/auth';
+import { FORMAS_DE_PAGO } from '@/types/entrega';
 
 /**
  * Página de registro de entregas
@@ -21,6 +22,7 @@ function RegistroPage(): JSX.Element {
   const [fechaDomicilio, setFechaDomicilio] = useState('');
   const [numeroFactura, setNumeroFactura] = useState('');
   const [valor, setValor] = useState('');
+  const [formaPago, setFormaPago] = useState('');
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
   const [exito, setExito] = useState(false);
@@ -118,9 +120,10 @@ function RegistroPage(): JSX.Element {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          fecha_domicilio: fechaParaEnviar, // Enviar la fecha normalizada como string
+          fecha_domicilio: fechaParaEnviar,
           numero_factura: numeroFacturaNumerico,
           valor: valorNumerico,
+          forma_pago: formaPago || null,
         }),
       });
 
@@ -134,6 +137,7 @@ function RegistroPage(): JSX.Element {
       // Mantener la fecha para facilitar el registro de múltiples entregas el mismo día
       setNumeroFactura('');
       setValor('');
+      setFormaPago('');
 
       setTimeout(() => {
         setExito(false);
@@ -199,6 +203,23 @@ function RegistroPage(): JSX.Element {
                   className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 placeholder-gray-400"
                   placeholder="Ingresa el valor de la entrega (ej: 50000)"
                 />
+              </div>
+
+              <div>
+                <label htmlFor="forma_pago" className="block text-sm font-medium text-gray-700 mb-2">
+                  Forma de Pago (opcional)
+                </label>
+                <select
+                  id="forma_pago"
+                  value={formaPago}
+                  onChange={(e) => setFormaPago(e.target.value)}
+                  className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
+                >
+                  <option value="">-- Seleccionar --</option>
+                  {FORMAS_DE_PAGO.map((forma) => (
+                    <option key={forma} value={forma}>{forma}</option>
+                  ))}
+                </select>
               </div>
 
               {error && (

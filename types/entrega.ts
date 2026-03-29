@@ -1,4 +1,36 @@
 /**
+ * Valores válidos para la forma de pago de una entrega.
+ * Se utiliza como tipo restrictivo para evitar valores no permitidos.
+ */
+export type FormaPago =
+  | 'EFECTIVO'
+  | 'NEQUI'
+  | 'DAVIPLATA'
+  | 'DATAFONO'
+  | 'DAVIVIENDA (LLAVE)'
+  | 'BANCOLOMBIA'
+  | 'BOGOTÁ'
+  | 'CREDITO'
+  | 'FLEX'
+  | '';
+
+/**
+ * Lista de formas de pago disponibles en el sistema.
+ * Se reutiliza en el formulario de registro y en las vistas de consulta.
+ */
+export const FORMAS_DE_PAGO: FormaPago[] = [
+  'EFECTIVO',
+  'NEQUI',
+  'DAVIPLATA',
+  'DATAFONO',
+  'DAVIVIENDA (LLAVE)',
+  'BANCOLOMBIA',
+  'BOGOTÁ',
+  'CREDITO',
+  'FLEX',
+];
+
+/**
  * Tipo que representa una entrega registrada en el sistema
  * 
  * Cada entrega está asociada a un usuario y contiene información
@@ -10,6 +42,7 @@ export interface Entrega {
   fecha_domicilio: string;
   numero_factura: string;
   valor: number;
+  forma_pago: string | null;
   created_at: string;
 }
 

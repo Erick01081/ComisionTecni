@@ -55,10 +55,23 @@ USING (auth.uid() = user_id);
 -- se debe crear una función en Supabase que verifique si el usuario es administrador
 -- o se puede usar el servicio admin desde el servidor (como se hace en la aplicación)
 
+-- Agregar columna forma_pago (opcional) para registrar el método de pago
+-- Se ejecuta con IF NOT EXISTS implícito usando DO block para no fallar si ya existe
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'entregas' AND column_name = 'forma_pago'
+  ) THEN
+    ALTER TABLE entregas ADD COLUMN forma_pago TEXT DEFAULT NULL;
+  END IF;
+END $$;
+
 -- Comentarios sobre la estructura:
 -- - id: Identificador único de la entrega (generado en la aplicación)
 -- - user_id: Referencia al usuario autenticado (UUID de auth.users)
 -- - fecha_domicilio: Fecha del domicilio (DATE)
 -- - numero_factura: Número de factura (TEXT)
 -- - valor: Valor de la entrega (DECIMAL con 2 decimales, debe ser mayor a 0)
+-- - forma_pago: Forma de pago opcional (TEXT, puede ser NULL)
 -- - created_at: Fecha de creación del registro (TIMESTAMP con zona horaria)

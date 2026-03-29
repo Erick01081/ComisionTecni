@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import ProtegerRuta from '@/components/ProtegerRuta';
 import Navegacion from '@/components/Navegacion';
 import { obtenerUsuarioActual } from '@/lib/auth';
-import { Entrega } from '@/types/entrega';
+import { Entrega, FORMAS_DE_PAGO } from '@/types/entrega';
 
 /**
  * Página de consulta de entregas personales
@@ -26,6 +26,7 @@ function MisEntregasPage(): JSX.Element {
   const [editandoFecha, setEditandoFecha] = useState('');
   const [editandoFactura, setEditandoFactura] = useState('');
   const [editandoValor, setEditandoValor] = useState('');
+  const [editandoFormaPago, setEditandoFormaPago] = useState('');
   const [eliminandoId, setEliminandoId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -164,11 +165,11 @@ function MisEntregasPage(): JSX.Element {
    */
   const iniciarEdicion = (entrega: Entrega) => {
     setEditandoId(entrega.id);
-    // Extraer solo la fecha (YYYY-MM-DD) si viene con hora
     let fechaSolo = entrega.fecha_domicilio.split('T')[0].split(' ')[0];
     setEditandoFecha(fechaSolo);
     setEditandoFactura(entrega.numero_factura);
     setEditandoValor(entrega.valor.toString());
+    setEditandoFormaPago(entrega.forma_pago || '');
   };
 
   /**
@@ -181,6 +182,7 @@ function MisEntregasPage(): JSX.Element {
     setEditandoFecha('');
     setEditandoFactura('');
     setEditandoValor('');
+    setEditandoFormaPago('');
   };
 
   /**
@@ -216,6 +218,7 @@ function MisEntregasPage(): JSX.Element {
           fecha_domicilio: editandoFecha,
           numero_factura: editandoFactura,
           valor: parseFloat(editandoValor),
+          forma_pago: editandoFormaPago || null,
         }),
       });
 
@@ -414,6 +417,19 @@ function MisEntregasPage(): JSX.Element {
                               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900"
                             />
                           </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Forma de Pago</label>
+                            <select
+                              value={editandoFormaPago}
+                              onChange={(e) => setEditandoFormaPago(e.target.value)}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
+                            >
+                              <option value="">-- Sin especificar --</option>
+                              {FORMAS_DE_PAGO.map((forma) => (
+                                <option key={forma} value={forma}>{forma}</option>
+                              ))}
+                            </select>
+                          </div>
                           <div className="flex gap-2">
                             <button
                               onClick={guardarEdicion}
@@ -435,6 +451,11 @@ function MisEntregasPage(): JSX.Element {
                             <div className="flex-1 min-w-0">
                               <p className="text-base font-semibold text-gray-900 mb-1">{entrega.numero_factura}</p>
                               <p className="text-sm text-gray-600">{formatearFechaCorta(entrega.fecha_domicilio)}</p>
+                              {entrega.forma_pago && (
+                                <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-700 rounded-full">
+                                  {entrega.forma_pago}
+                                </span>
+                              )}
                             </div>
                             <p className="text-lg font-bold text-primary-600 ml-3">{formatearMoneda(entrega.valor)}</p>
                           </div>
@@ -482,6 +503,9 @@ function MisEntregasPage(): JSX.Element {
                           Valor
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Forma de Pago
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Fecha Registro
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -518,6 +542,18 @@ function MisEntregasPage(): JSX.Element {
                                   className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900"
                                 />
                               </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <select
+                                  value={editandoFormaPago}
+                                  onChange={(e) => setEditandoFormaPago(e.target.value)}
+                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
+                                >
+                                  <option value="">-- Sin especificar --</option>
+                                  {FORMAS_DE_PAGO.map((forma) => (
+                                    <option key={forma} value={forma}>{forma}</option>
+                                  ))}
+                                </select>
+                              </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {formatearFecha(entrega.created_at)}
                               </td>
@@ -548,6 +584,15 @@ function MisEntregasPage(): JSX.Element {
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                 {formatearMoneda(entrega.valor)}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                {entrega.forma_pago ? (
+                                  <span className="inline-block px-2 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-700 rounded-full">
+                                    {entrega.forma_pago}
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-400">—</span>
+                                )}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {formatearFecha(entrega.created_at)}
@@ -581,7 +626,7 @@ function MisEntregasPage(): JSX.Element {
                         <td className="px-6 py-4 text-sm font-bold text-gray-900">
                           {formatearMoneda(total)}
                         </td>
-                        <td></td>
+                        <td colSpan={3}></td>
                       </tr>
                     </tfoot>
                   </table>

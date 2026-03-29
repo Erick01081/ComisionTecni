@@ -91,7 +91,7 @@ export async function PUT(
 
     const entregaId = params.id;
     const body = await request.json();
-    const { fecha_domicilio, numero_factura, valor } = body;
+    const { fecha_domicilio, numero_factura, valor, forma_pago } = body;
 
     // Validaciones
     if (!fecha_domicilio || !numero_factura || valor === undefined) {
@@ -136,12 +136,17 @@ export async function PUT(
     const authHeader = request.headers.get('authorization');
     const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : undefined;
 
+    const formaPagoNormalizada = forma_pago && typeof forma_pago === 'string' && forma_pago.trim() !== ''
+      ? forma_pago.trim()
+      : null;
+
     const entrega = await actualizarEntrega(
       entregaId,
       usuario.id,
       fechaNormalizada,
       numeroFacturaTrim,
       valorNumerico,
+      formaPagoNormalizada,
       accessToken
     );
 

@@ -39,6 +39,7 @@ function obtenerClienteSupabase() {
  * @param fecha_domicilio - Fecha del domicilio en formato ISO (string)
  * @param numero_factura - Número de factura (string)
  * @param valor - Valor de la entrega (number)
+ * @param forma_pago - Forma de pago opcional (string | null)
  * @param accessToken - Token de acceso de Supabase para autenticar la petición (string, opcional)
  * @param refreshToken - Token de refresco de Supabase (string, opcional)
  * @returns La entrega creada (Entrega)
@@ -48,6 +49,7 @@ export async function crearEntrega(
   fecha_domicilio: string,
   numero_factura: string,
   valor: number,
+  forma_pago: string | null,
   accessToken?: string,
   refreshToken?: string
 ): Promise<Entrega> {
@@ -79,9 +81,10 @@ export async function crearEntrega(
   const nuevaEntrega: Entrega = {
     id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
     user_id,
-    fecha_domicilio: fechaNormalizada, // Guardar como string YYYY-MM-DD sin conversión
+    fecha_domicilio: fechaNormalizada,
     numero_factura,
     valor,
+    forma_pago: forma_pago || null,
     created_at: new Date().toISOString(),
   };
   
@@ -149,14 +152,13 @@ export async function crearEntrega(
       console.log('[crearEntrega] RPC no disponible, usando insert directo:', rpcErr);
     }
     
-    // Insertar directamente con la fecha como string YYYY-MM-DD
-    // PostgreSQL debería interpretar esto como DATE sin conversión de zona horaria
     const objetoInsertar = {
       id: nuevaEntrega.id,
       user_id: nuevaEntrega.user_id,
-      fecha_domicilio: fechaNormalizada, // String YYYY-MM-DD
+      fecha_domicilio: fechaNormalizada,
       numero_factura: nuevaEntrega.numero_factura,
       valor: nuevaEntrega.valor,
+      forma_pago: nuevaEntrega.forma_pago,
       created_at: nuevaEntrega.created_at,
     };
     
@@ -476,6 +478,7 @@ export async function calcularTotalGeneral(
  * @param fecha_domicilio - Nueva fecha del domicilio en formato YYYY-MM-DD (string)
  * @param numero_factura - Nuevo número de factura (string)
  * @param valor - Nuevo valor de la entrega (number)
+ * @param forma_pago - Forma de pago opcional (string | null)
  * @param accessToken - Token de acceso de Supabase para autenticar la petición (string, opcional)
  * @returns La entrega actualizada (Entrega)
  */
@@ -485,6 +488,7 @@ export async function actualizarEntrega(
   fecha_domicilio: string,
   numero_factura: string,
   valor: number,
+  forma_pago: string | null,
   accessToken?: string
 ): Promise<Entrega> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -558,16 +562,16 @@ export async function actualizarEntrega(
     throw new Error('No se encontró la entrega o no tienes permisos para actualizarla');
   }
 
-  // Realizar la actualización
   const { data, error } = await supabase
     .from(TABLA_ENTREGAS)
     .update({
       fecha_domicilio: fechaNormalizada,
       numero_factura: numero_factura.trim(),
       valor: valor,
+      forma_pago: forma_pago,
     })
     .eq('id', entrega_id)
-    .eq('user_id', user_id) // Asegurar que solo el propietario pueda actualizar
+    .eq('user_id', user_id)
     .select();
 
   console.log('[actualizarEntrega] Resultado de actualización:', {
