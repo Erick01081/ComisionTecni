@@ -135,9 +135,10 @@ export async function crearEntrega(
       const { data: rpcData, error: rpcError } = await supabase.rpc('insertar_entrega', {
         p_id: nuevaEntrega.id,
         p_user_id: nuevaEntrega.user_id,
-        p_fecha_domicilio: fechaNormalizada, // Enviar como string YYYY-MM-DD
+        p_fecha_domicilio: fechaNormalizada,
         p_numero_factura: nuevaEntrega.numero_factura,
         p_valor: nuevaEntrega.valor,
+        p_forma_pago: nuevaEntrega.forma_pago,
         p_created_at: nuevaEntrega.created_at,
       });
       
