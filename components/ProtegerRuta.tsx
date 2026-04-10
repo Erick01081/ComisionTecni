@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { obtenerUsuarioActual, esAdministrador } from '@/lib/auth';
+import { obtenerUsuarioActual, esAdministrador, esConsultaVentas } from '@/lib/auth';
 
 interface ProtegerRutaProps {
   children: React.ReactNode;
   requiereAdmin?: boolean;
+  requiereConsultaVentas?: boolean;
 }
 
 /**
@@ -20,8 +21,9 @@ interface ProtegerRutaProps {
  * 
  * @param children - Contenido a mostrar si el usuario está autenticado
  * @param requiereAdmin - Si es true, solo permite acceso a administradores (boolean, opcional)
+ * @param requiereConsultaVentas - Si es true, solo permite acceso a usuarios de consulta ventas (boolean, opcional)
  */
-export default function ProtegerRuta({ children, requiereAdmin = false }: ProtegerRutaProps) {
+export default function ProtegerRuta({ children, requiereAdmin = false, requiereConsultaVentas = false }: ProtegerRutaProps) {
   const router = useRouter();
   const [cargando, setCargando] = useState(true);
   const [autorizado, setAutorizado] = useState(false);
@@ -40,12 +42,17 @@ export default function ProtegerRuta({ children, requiereAdmin = false }: Proteg
         return;
       }
 
+      if (requiereConsultaVentas && !esConsultaVentas(usuario.email)) {
+        router.push('/registro');
+        return;
+      }
+
       setAutorizado(true);
       setCargando(false);
     }
 
     verificarAutenticacion();
-  }, [router, requiereAdmin]);
+  }, [router, requiereAdmin, requiereConsultaVentas]);
 
   if (cargando) {
     return (

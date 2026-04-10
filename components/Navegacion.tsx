@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { obtenerUsuarioActual, cerrarSesion, esAdministrador } from '@/lib/auth';
+import { obtenerUsuarioActual, cerrarSesion, esAdministrador, esConsultaVentas } from '@/lib/auth';
 import Logo from '@/components/Logo';
 
 interface NavegacionProps {
-  paginaActual: 'registro' | 'mis-entregas' | 'admin';
+  paginaActual: 'registro' | 'mis-entregas' | 'admin' | 'consulta-factura';
 }
 
 /**
@@ -18,13 +18,14 @@ interface NavegacionProps {
  * 
  * Complejidad: O(1) - Solo renderiza la UI
  * 
- * @param paginaActual - Página actual para resaltar el enlace activo ('registro' | 'mis-entregas' | 'admin')
+ * @param paginaActual - Página actual para resaltar el enlace activo ('registro' | 'mis-entregas' | 'admin' | 'consulta-factura')
  */
 export default function Navegacion({ paginaActual }: NavegacionProps) {
   const router = useRouter();
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [usuario, setUsuario] = useState<any>(null);
   const [esAdmin, setIsAdmin] = useState(false);
+  const [tieneConsultaVentas, setTieneConsultaVentas] = useState(false);
 
   useEffect(() => {
     async function cargarUsuario() {
@@ -32,6 +33,7 @@ export default function Navegacion({ paginaActual }: NavegacionProps) {
       setUsuario(user);
       if (user) {
         setIsAdmin(esAdministrador(user.email));
+        setTieneConsultaVentas(esConsultaVentas(user.email));
       }
     }
     cargarUsuario();
@@ -100,6 +102,18 @@ export default function Navegacion({ paginaActual }: NavegacionProps) {
                 }`}
               >
                 Administrador
+              </button>
+            )}
+            {tieneConsultaVentas && (
+              <button
+                onClick={() => navegar('/consulta-factura')}
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  paginaActual === 'consulta-factura'
+                    ? 'text-primary-600 border-b-2 border-primary-600'
+                    : 'text-gray-600 hover:text-primary-600'
+                }`}
+              >
+                Consulta Factura
               </button>
             )}
           </div>
@@ -188,6 +202,18 @@ export default function Navegacion({ paginaActual }: NavegacionProps) {
                 }`}
               >
                 Administrador
+              </button>
+            )}
+            {tieneConsultaVentas && (
+              <button
+                onClick={() => navegar('/consulta-factura')}
+                className={`block w-full text-left px-3 py-3 rounded-md text-base font-medium transition-colors ${
+                  paginaActual === 'consulta-factura'
+                    ? 'bg-primary-50 text-primary-600'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Consulta Factura
               </button>
             )}
             <div className="border-t border-gray-200 pt-2 mt-2">

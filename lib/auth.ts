@@ -213,6 +213,32 @@ export async function cerrarSesion(): Promise<boolean> {
 }
 
 /**
+ * Verifica si un usuario tiene acceso a la consulta de facturas por ventas
+ * 
+ * Esta función compara el email del usuario contra una lista fija de correos
+ * autorizados para consultar facturas (correo del que entregó y forma de pago).
+ * Se usa una lista hardcodeada porque son solo tres usuarios específicos de ventas.
+ * 
+ * Complejidad: O(1) - Verificación simple contra un array fijo
+ * 
+ * @param email - Email del usuario a verificar (string | undefined)
+ * @returns true si el usuario tiene acceso a consulta de facturas, false en caso contrario (boolean)
+ */
+export function esConsultaVentas(email: string | undefined): boolean {
+  if (!email) {
+    return false;
+  }
+
+  const emailsAutorizados = [
+    'ventas1@tecnirecargas.com',
+    'emilse.sutachan@gmail.com',
+    'e.santiagom.s@gmail.com',
+  ];
+
+  return emailsAutorizados.includes(email.toLowerCase());
+}
+
+/**
  * Envía un email de recuperación de contraseña
  * 
  * Esta función envía un email al usuario con un enlace para restablecer su contraseña.
