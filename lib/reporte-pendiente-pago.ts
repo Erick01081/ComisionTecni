@@ -21,12 +21,18 @@ export interface RangoCorteViernes {
 /**
  * Resultado del envío del reporte semanal
  */
+export interface ErrorEnvioCorreo {
+  correo: string;
+  error: string;
+}
+
 export interface ResultadoReportePendientePago {
   rango: RangoCorteViernes;
   cantidadFacturas: number;
   totalValor: number;
   correosEnviados: string[];
   correosFallidos: string[];
+  erroresEnvio: ErrorEnvioCorreo[];
 }
 
 /**
@@ -318,18 +324,23 @@ export async function enviarReportePendientePagoAdministradores(
   const correosAdministradores = obtenerEmailsAdministradores();
   const correosEnviados: string[] = [];
   const correosFallidos: string[] = [];
+  const erroresEnvio: ErrorEnvioCorreo[] = [];
 
   for (const correo of correosAdministradores) {
-    const enviado = await enviarCorreo({
+    const resultadoEnvio = await enviarCorreo({
       destinatario: correo,
       asunto,
       contenidoHtml,
     });
 
-    if (enviado) {
+    if (resultadoEnvio.exito) {
       correosEnviados.push(correo);
     } else {
       correosFallidos.push(correo);
+      erroresEnvio.push({
+        correo,
+        error: resultadoEnvio.error || 'Error desconocido',
+      });
     }
   }
 
@@ -339,5 +350,6 @@ export async function enviarReportePendientePagoAdministradores(
     totalValor,
     correosEnviados,
     correosFallidos,
+    erroresEnvio,
   };
 }

@@ -8,6 +8,14 @@ export interface ParametrosCorreo {
 }
 
 /**
+ * Resultado del intento de envío de un correo
+ */
+export interface ResultadoEnvioCorreo {
+  exito: boolean;
+  error?: string;
+}
+
+/**
  * Envía un correo electrónico usando la API de Resend
  *
  * Se utiliza Resend porque la aplicación no tenía infraestructura de correo
@@ -17,15 +25,22 @@ export interface ParametrosCorreo {
  * Complejidad: O(1) - Una sola petición HTTP
  *
  * @param parametros - Datos del correo (destinatario, asunto, contenidoHtml)
- * @returns true si el correo se envió correctamente (boolean)
+ * @returns Resultado con éxito o mensaje de error (ResultadoEnvioCorreo)
  */
-export async function enviarCorreo(parametros: ParametrosCorreo): Promise<boolean> {
+export async function enviarCorreo(parametros: ParametrosCorreo): Promise<ResultadoEnvioCorreo> {
   const apiKey = process.env.RESEND_API_KEY;
   const remitente = process.env.EMAIL_FROM;
 
-  if (!apiKey || !remitente) {
-    console.error('[enviarCorreo] Faltan RESEND_API_KEY o EMAIL_FROM en variables de entorno');
-    return false;
+  if (!apiKey) {
+    const error = 'Falta RESEND_API_KEY en variables de entorno';
+    console.error(`[enviarCorreo] ${error}`);
+    return { exito: false, error };
+  }
+
+  if (!remitente) {
+    const error = 'Falta EMAIL_FROM en variables de entorno';
+    console.error(`[enviarCorreo] ${error}`);
+    return { exito: false, error };
   }
 
   try {
@@ -45,13 +60,15 @@ export async function enviarCorreo(parametros: ParametrosCorreo): Promise<boolea
 
     if (!respuesta.ok) {
       const detalle = await respuesta.text();
-      console.error('[enviarCorreo] Error de Resend:', respuesta.status, detalle);
-      return false;
+      const error = `Resend ${respuesta.status}: ${detalle}`;
+      console.error('[enviarCorreo] Error de Resend:', error);
+      return { exito: false, error };
     }
 
-    return true;
+    return { exito: true };
   } catch (error) {
-    console.error('[enviarCorreo] Error al enviar correo:', error);
-    return false;
+    const mensaje = error instanceof Error ? error.message : 'Error desconocido al enviar correo';
+    console.error('[enviarCorreo] Error al enviar correo:', mensaje);
+    return { exito: false, error: mensaje };
   }
 }

@@ -52,6 +52,7 @@ export async function GET(request: NextRequest) {
       total_valor: resultado.totalValor,
       correos_enviados: resultado.correosEnviados,
       correos_fallidos: resultado.correosFallidos,
+      errores_envio: resultado.erroresEnvio,
       rango: {
         inicio: resultado.rango.inicioISO,
         fin: resultado.rango.finISO,
