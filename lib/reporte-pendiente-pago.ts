@@ -241,23 +241,12 @@ function construirContenidoHtmlCorreo(
   const totalValor = entregas.reduce((acumulado, entrega) => acumulado + entrega.valor, 0);
 
   const filasTabla = entregas
-    .map(entrega => {
-      const fechaRegistro = new Date(entrega.created_at).toLocaleString('es-CO', {
-        timeZone: ZONA_HORARIA,
-        dateStyle: 'short',
-        timeStyle: 'short',
-      });
-
-      return `
+    .map(entrega => `
         <tr>
           <td style="padding:8px;border:1px solid #ddd;">${entrega.numero_factura}</td>
-          <td style="padding:8px;border:1px solid #ddd;">${entrega.usuario_email}</td>
-          <td style="padding:8px;border:1px solid #ddd;">${entrega.fecha_domicilio}</td>
-          <td style="padding:8px;border:1px solid #ddd;">${fechaRegistro}</td>
           <td style="padding:8px;border:1px solid #ddd;text-align:right;">${formatearMoneda(entrega.valor)}</td>
         </tr>
-      `;
-    })
+      `)
     .join('');
 
   const mensajeSinFacturas = entregas.length === 0
@@ -274,18 +263,19 @@ function construirContenidoHtmlCorreo(
       ${
         entregas.length > 0
           ? `
-        <table style="border-collapse:collapse;width:100%;margin-top:16px;">
+        <table style="border-collapse:collapse;width:100%;max-width:480px;margin-top:16px;">
           <thead>
             <tr style="background:#f5f5f5;">
-              <th style="padding:8px;border:1px solid #ddd;text-align:left;">Factura</th>
-              <th style="padding:8px;border:1px solid #ddd;text-align:left;">Usuario</th>
-              <th style="padding:8px;border:1px solid #ddd;text-align:left;">Fecha domicilio</th>
-              <th style="padding:8px;border:1px solid #ddd;text-align:left;">Registrado</th>
+              <th style="padding:8px;border:1px solid #ddd;text-align:left;">Número de factura</th>
               <th style="padding:8px;border:1px solid #ddd;text-align:right;">Valor</th>
             </tr>
           </thead>
           <tbody>
             ${filasTabla}
+            <tr style="background:#f9f9f9;font-weight:bold;">
+              <td style="padding:8px;border:1px solid #ddd;">Total (${entregas.length} facturas)</td>
+              <td style="padding:8px;border:1px solid #ddd;text-align:right;">${formatearMoneda(totalValor)}</td>
+            </tr>
           </tbody>
         </table>
       `
