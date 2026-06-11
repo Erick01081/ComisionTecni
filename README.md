@@ -10,6 +10,8 @@ Aplicación web para registro y consulta de entregas con autenticación Supabase
 - ✅ Panel de administrador con consulta de todas las entregas
 - ✅ Cálculo de totales por usuario y total general
 - ✅ Exportación de datos a CSV
+- ✅ Forma de pago "Pendiente de Pago"
+- ✅ Reporte semanal por correo a administradores (viernes 2:00 p.m.)
 - ✅ Interfaz responsive y moderna
 - ✅ Seguridad con Row Level Security (RLS)
 
@@ -35,6 +37,9 @@ NEXT_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_clave_anon_aqui
 NEXT_PUBLIC_ADMIN_EMAILS=admin@ejemplo.com,otro@ejemplo.com
 SUPABASE_SERVICE_ROLE_KEY=tu_service_role_key_aqui
+RESEND_API_KEY=re_xxxxxxxxxxxx
+EMAIL_FROM=Comisiones Tecni <noreply@tudominio.com>
+CRON_SECRET=un_secreto_largo_y_aleatorio
 ```
 
 **Nota importante sobre SUPABASE_SERVICE_ROLE_KEY:**
@@ -66,6 +71,29 @@ NEXT_PUBLIC_ADMIN_EMAILS=admin@ejemplo.com,gerente@ejemplo.com
 ```
 
 Los emails deben estar separados por comas. Solo los usuarios con estos emails tendrán acceso al panel de administrador.
+
+## Reporte semanal "Pendiente de Pago"
+
+Cada viernes a las **2:00 p.m. (hora de Bogotá)** se envía un correo a todos los administradores con las facturas registradas con forma de pago **Pendiente de Pago** en el periodo:
+
+- **Desde:** viernes anterior a las 2:01 p.m.
+- **Hasta:** viernes actual a las 2:00 p.m.
+
+### Variables adicionales para el correo
+
+| Variable | Descripción |
+|----------|-------------|
+| `RESEND_API_KEY` | API key de [Resend](https://resend.com) para enviar correos |
+| `EMAIL_FROM` | Remitente verificado en Resend (ej. `Comisiones Tecni <noreply@tudominio.com>`) |
+| `CRON_SECRET` | Secreto para proteger el endpoint del cron (`/api/cron/pendiente-pago`) |
+
+El cron se configura en `vercel.json` (`0 19 * * 5` = viernes 19:00 UTC = 14:00 Bogotá).
+
+Para probar manualmente:
+
+```bash
+curl -H "Authorization: Bearer TU_CRON_SECRET" https://tu-dominio.vercel.app/api/cron/pendiente-pago
+```
 
 ## Estructura del Proyecto
 
@@ -141,6 +169,9 @@ ComisionesTecni/
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `NEXT_PUBLIC_ADMIN_EMAILS`
    - `SUPABASE_SERVICE_ROLE_KEY` (solo en servidor)
+   - `RESEND_API_KEY`
+   - `EMAIL_FROM`
+   - `CRON_SECRET`
 4. El despliegue se realizará automáticamente
 
 ## Notas Importantes

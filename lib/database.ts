@@ -630,6 +630,62 @@ export async function actualizarEntrega(
  * @param accessToken - Token de acceso de Supabase para autenticar la petición (string, opcional)
  * @returns true si se eliminó correctamente
  */
+/**
+ * Obtiene entregas filtradas por forma de pago y rango de fecha de creación
+ *
+ * Se utiliza en el reporte semanal de facturas "Pendiente de Pago" enviado
+ * a los administradores. Usa el servicio admin para consultar todas las entregas
+ * sin restricciones de RLS.
+ *
+ * Complejidad: O(n) donde n es el número de entregas en el rango
+ *
+ * @param fecha_inicio_iso - Inicio del rango en ISO 8601 (string)
+ * @param fecha_fin_iso - Fin del rango en ISO 8601 (string)
+ * @param forma_pago - Forma de pago a filtrar (string)
+ * @returns Array de entregas que cumplen el filtro (Entrega[])
+ */
+export async function obtenerEntregasPendientePagoPorRangoCreacion(
+  fecha_inicio_iso: string,
+  fecha_fin_iso: string,
+  forma_pago: string
+): Promise<Entrega[]> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('[obtenerEntregasPendientePagoPorRangoCreacion] Supabase admin no configurado');
+    return [];
+  }
+
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    });
+
+    const { data, error } = await supabase
+      .from(TABLA_ENTREGAS)
+      .select('*')
+      .eq('forma_pago', forma_pago)
+      .gte('created_at', fecha_inicio_iso)
+      .lte('created_at', fecha_fin_iso)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('[obtenerEntregasPendientePagoPorRangoCreacion] Error:', error);
+      return [];
+    }
+
+    return (data || []) as Entrega[];
+  } catch (error) {
+    console.error('[obtenerEntregasPendientePagoPorRangoCreacion] Error:', error);
+    return [];
+  }
+}
+
 export async function eliminarEntrega(
   entrega_id: string,
   user_id: string,

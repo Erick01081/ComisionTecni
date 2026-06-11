@@ -104,10 +104,27 @@ export function esAdministrador(email: string | undefined): boolean {
     return false;
   }
 
-  const adminEmails = process.env.NEXT_PUBLIC_ADMIN_EMAILS || '';
-  const listaAdmins = adminEmails.split(',').map(e => e.trim().toLowerCase());
-  
+  const listaAdmins = obtenerEmailsAdministradores();
   return listaAdmins.includes(email.toLowerCase());
+}
+
+/**
+ * Obtiene la lista de correos de administradores configurados
+ *
+ * Lee la variable de entorno NEXT_PUBLIC_ADMIN_EMAILS y devuelve los correos
+ * normalizados en minúsculas. Se centraliza aquí para reutilizar la misma
+ * fuente en la verificación de permisos y en el envío de notificaciones.
+ *
+ * Complejidad: O(n) donde n es la cantidad de administradores configurados
+ *
+ * @returns Array de correos de administradores (string[])
+ */
+export function obtenerEmailsAdministradores(): string[] {
+  const adminEmails = process.env.NEXT_PUBLIC_ADMIN_EMAILS || '';
+  return adminEmails
+    .split(',')
+    .map(correo => correo.trim().toLowerCase())
+    .filter(correo => correo.length > 0);
 }
 
 /**

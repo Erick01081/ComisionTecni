@@ -12,7 +12,14 @@ export type FormaPago =
   | 'BOGOTÁ'
   | 'CREDITO'
   | 'FLEX'
+  | 'PENDIENTE DE PAGO'
   | '';
+
+/**
+ * Valor constante para la forma de pago "Pendiente de Pago".
+ * Se reutiliza en consultas y en el reporte semanal a administradores.
+ */
+export const FORMA_PAGO_PENDIENTE = 'PENDIENTE DE PAGO' as const;
 
 /**
  * Lista de formas de pago disponibles en el sistema.
@@ -28,6 +35,7 @@ export const FORMAS_DE_PAGO: FormaPago[] = [
   'BOGOTÁ',
   'CREDITO',
   'FLEX',
+  'PENDIENTE DE PAGO',
 ];
 
 /**
