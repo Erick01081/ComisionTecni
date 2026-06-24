@@ -363,8 +363,9 @@ export async function obtenerEntregasPorRangoFechas(
     const TAMANO_LOTE = 1000;
     const entregasAcumuladas: Entrega[] = [];
     let desde = 0;
+    let entregasLote: Entrega[] = [];
 
-    while (true) {
+    do {
       const hasta = desde + TAMANO_LOTE - 1;
       const { data: lote, error: errorLote } = await supabase
         .from(TABLA_ENTREGAS)
@@ -381,19 +382,14 @@ export async function obtenerEntregasPorRangoFechas(
         return [];
       }
 
-      const entregasLote = (lote || []) as Entrega[];
+      entregasLote = (lote || []) as Entrega[];
       if (entregasLote.length === 0) {
-        break;
+        continue;
       }
 
       entregasAcumuladas.push(...entregasLote);
-
-      if (entregasLote.length < TAMANO_LOTE) {
-        break;
-      }
-
       desde += TAMANO_LOTE;
-    }
+    } while (entregasLote.length === TAMANO_LOTE);
 
     console.log('[obtenerEntregasPorRangoFechas] Entregas encontradas en rango:', {
       cantidad: entregasAcumuladas.length,
@@ -733,4 +729,3 @@ export async function eliminarEntrega(
 
   return true;
 }
-
