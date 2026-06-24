@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Entrega, EntregaConUsuario } from '@/types/entrega';
 
 const TABLA_ENTREGAS = 'entregas';
+const SUPABASE_MAX_ROWS = 1000;
 
 /**
  * Obtiene el cliente de Supabase si está configurado
@@ -358,45 +359,39 @@ export async function obtenerEntregasPorRangoFechas(
       fechaFinNormalizada,
     });
 
-    // Primero, hacer una consulta de prueba para ver todas las entregas (solo para debug)
-    const { data: todasEntregas, error: errorTodas } = await supabase
-      .from(TABLA_ENTREGAS)
-      .select('*')
-      .limit(10);
-    
-    console.log('[obtenerEntregasPorRangoFechas] Todas las entregas (primeras 10):', {
-      cantidad: todasEntregas?.length || 0,
-      entregas: todasEntregas,
-      error: errorTodas,
-    });
+    // Supabase puede limitar una consulta individual a 1000 filas.
+    // Por eso se pagina en lotes hasta traer todos los registros del rango.
+    const entregasAcumuladas: Entrega[] = [];
+    let desde = 0;
+    let entregasLote: Entrega[] = [];
 
-    // Si hay error al obtener todas, puede ser un problema de permisos
-    if (errorTodas) {
-      console.error('[obtenerEntregasPorRangoFechas] Error al obtener todas las entregas:', errorTodas);
-    }
+    do {
+      const hasta = desde + SUPABASE_MAX_ROWS - 1;
+      const { data: lote, error: errorLote } = await supabase
+        .from(TABLA_ENTREGAS)
+        .select('*')
+        .gte('fecha_domicilio', fechaInicioNormalizada)
+        .lte('fecha_domicilio', fechaFinNormalizada)
+        .order('fecha_domicilio', { ascending: false })
+        .range(desde, hasta);
 
-    // Obtener todas las entregas en el rango
-    // Usar >= y <= para incluir ambas fechas límite
-    const { data: entregas, error: errorEntregas } = await supabase
-      .from(TABLA_ENTREGAS)
-      .select('*')
-      .gte('fecha_domicilio', fechaInicioNormalizada)
-      .lte('fecha_domicilio', fechaFinNormalizada)
-      .order('fecha_domicilio', { ascending: false });
+      if (errorLote) {
+        console.error('[obtenerEntregasPorRangoFechas] Error al leer entregas desde Supabase:', errorLote);
+        console.error('[obtenerEntregasPorRangoFechas] Fechas usadas:', { fechaInicioNormalizada, fechaFinNormalizada });
+        console.error('[obtenerEntregasPorRangoFechas] Usando admin:', usarAdmin);
+        return [];
+      }
 
-    if (errorEntregas) {
-      console.error('[obtenerEntregasPorRangoFechas] Error al leer entregas desde Supabase:', errorEntregas);
-      console.error('[obtenerEntregasPorRangoFechas] Fechas usadas:', { fechaInicioNormalizada, fechaFinNormalizada });
-      console.error('[obtenerEntregasPorRangoFechas] Usando admin:', usarAdmin);
-      return [];
-    }
+      entregasLote = (lote || []) as Entrega[];
+      entregasAcumuladas.push(...entregasLote);
+      desde += SUPABASE_MAX_ROWS;
+    } while (entregasLote.length === SUPABASE_MAX_ROWS);
 
     console.log('[obtenerEntregasPorRangoFechas] Entregas encontradas en rango:', {
-      cantidad: entregas?.length || 0,
-      entregas: entregas,
+      cantidad: entregasAcumuladas.length,
     });
 
-    return (entregas || []) as Entrega[];
+    return entregasAcumuladas;
   } catch (error) {
     console.error('[obtenerEntregasPorRangoFechas] Error al leer entregas desde Supabase:', error);
     return [];
@@ -730,6 +725,3 @@ export async function eliminarEntrega(
 
   return true;
 }
-
-
-
