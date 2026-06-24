@@ -372,7 +372,6 @@ export async function obtenerEntregasPorRangoFechas(
         .gte('fecha_domicilio', fechaInicioNormalizada)
         .lte('fecha_domicilio', fechaFinNormalizada)
         .order('fecha_domicilio', { ascending: false })
-        .order('created_at', { ascending: false })
         .range(desde, hasta);
 
       if (errorLote) {
@@ -734,5 +733,4 @@ export async function eliminarEntrega(
 
   return true;
 }
-
 
