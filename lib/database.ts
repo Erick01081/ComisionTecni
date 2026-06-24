@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Entrega, EntregaConUsuario } from '@/types/entrega';
 
 const TABLA_ENTREGAS = 'entregas';
+const SUPABASE_MAX_ROWS = 1000;
 
 /**
  * Obtiene el cliente de Supabase si está configurado
@@ -360,13 +361,12 @@ export async function obtenerEntregasPorRangoFechas(
 
     // Supabase puede limitar una consulta individual a 1000 filas.
     // Por eso se pagina en lotes hasta traer todos los registros del rango.
-    const TAMANO_LOTE = 1000;
     const entregasAcumuladas: Entrega[] = [];
     let desde = 0;
     let entregasLote: Entrega[] = [];
 
     do {
-      const hasta = desde + TAMANO_LOTE - 1;
+      const hasta = desde + SUPABASE_MAX_ROWS - 1;
       const { data: lote, error: errorLote } = await supabase
         .from(TABLA_ENTREGAS)
         .select('*')
@@ -383,13 +383,9 @@ export async function obtenerEntregasPorRangoFechas(
       }
 
       entregasLote = (lote || []) as Entrega[];
-      if (entregasLote.length === 0) {
-        continue;
-      }
-
       entregasAcumuladas.push(...entregasLote);
-      desde += TAMANO_LOTE;
-    } while (entregasLote.length === TAMANO_LOTE);
+      desde += SUPABASE_MAX_ROWS;
+    } while (entregasLote.length === SUPABASE_MAX_ROWS);
 
     console.log('[obtenerEntregasPorRangoFechas] Entregas encontradas en rango:', {
       cantidad: entregasAcumuladas.length,
