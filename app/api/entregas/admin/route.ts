@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { obtenerEntregasPorRangoFechas, calcularTotalesPorUsuario, calcularTotalGeneral } from '@/lib/database';
+import { obtenerEntregasPorRangoFechas } from '@/lib/database';
 import { obtenerUsuarioDesdeToken, esAdministrador } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { EntregaConUsuario } from '@/types/entrega';
@@ -139,8 +139,18 @@ export async function GET(request: NextRequest) {
     const entregas = await obtenerEntregasPorRangoFechas(fechaInicio, fechaFin, true);
     console.log('Entregas encontradas:', entregas.length, entregas);
     
-    const totalesPorUserId = await calcularTotalesPorUsuario(fechaInicio, fechaFin, true);
-    const totalGeneral = await calcularTotalGeneral(fechaInicio, fechaFin, true);
+    const totalesMap = new Map<string, number>();
+    let totalGeneral = 0;
+
+    for (const entrega of entregas) {
+      const totalActualUsuario = totalesMap.get(entrega.user_id) || 0;
+      totalesMap.set(entrega.user_id, totalActualUsuario + entrega.valor);
+      totalGeneral += entrega.valor;
+    }
+
+    const totalesPorUserId = Array.from(totalesMap.entries())
+      .map(([user_id, total]) => ({ user_id, total }))
+      .sort((a, b) => b.total - a.total);
 
     // Obtener emails de usuarios usando servicio admin
     const supabaseAdmin = obtenerClienteSupabaseAdmin();
@@ -200,6 +210,5 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
 
 
