@@ -148,6 +148,13 @@ function AdminPage(): JSX.Element {
       entregasPorUsuario[entrega.usuario_email].push(entrega);
     });
 
+    const usuariosConSeparacion = new Set([
+      'alejo16barreto@gmail.com',
+      'luiscarlguerra.24@gmail.com',
+      'xander610@hotmail.com',
+      'danielvillamil943@gmail.com',
+    ]);
+
     // Crear una hoja por cada usuario
     Object.keys(entregasPorUsuario).forEach(email => {
       const entregasUsuario = entregasPorUsuario[email];
@@ -156,29 +163,82 @@ function AdminPage(): JSX.Element {
       // Limpiar el email para el nombre de la hoja (máximo 31 caracteres en Excel)
       const nombreHoja = email.length > 31 ? email.substring(0, 28) + '...' : email;
       
-      const usuarioData = [
-        [`ENTREGAS DE ${email.toUpperCase()}`],
-        [''],
-        ['Fecha Domicilio', 'Número Factura', 'Valor', 'Forma de Pago'],
-        ...entregasUsuario.map(e => [
-          e.fecha_domicilio,
-          e.numero_factura,
-          e.valor,
-          e.forma_pago || '',
-        ]),
-        [''],
-        ['TOTAL', '', totalUsuario, ''],
-      ];
+      const emailNormalizado = email.toLowerCase().trim();
+      let usuarioData: (string | number)[][] = [];
+
+      if (usuariosConSeparacion.has(emailNormalizado)) {
+        const entregasMenores50 = entregasUsuario.filter(e => e.valor < 50);
+        const entregasNormales = entregasUsuario.filter(e => e.valor >= 50);
+
+        const maxFilas = Math.max(entregasNormales.length, entregasMenores50.length);
+        const filasCombinadas = Array.from({ length: maxFilas }, (_, i) => {
+          const normal = entregasNormales[i];
+          const menor = entregasMenores50[i];
+          return [
+            normal?.fecha_domicilio || '',
+            normal?.numero_factura || '',
+            normal?.valor ?? '',
+            normal?.forma_pago || '',
+            '',
+            menor?.fecha_domicilio || '',
+            menor?.numero_factura || '',
+            menor?.valor ?? '',
+            menor?.forma_pago || '',
+          ];
+        });
+
+        const totalNormales = entregasNormales.reduce((suma, e) => suma + e.valor, 0);
+        const totalMenores50 = entregasMenores50.reduce((suma, e) => suma + e.valor, 0);
+
+        usuarioData = [
+          [`ENTREGAS DE ${email.toUpperCase()}`],
+          [''],
+          ['ENTREGAS NORMALES (>= 50)', '', '', '', '', 'ENTREGAS MENORES A 50', '', '', ''],
+          ['Fecha Domicilio', 'Número Factura', 'Valor', 'Forma de Pago', '', 'Fecha Domicilio', 'Número Factura', 'Valor', 'Forma de Pago'],
+          ...filasCombinadas,
+          [''],
+          ['TOTAL', '', totalNormales, '', '', 'TOTAL', '', totalMenores50, ''],
+          ['TOTAL GENERAL', '', totalUsuario, '', '', '', '', '', ''],
+        ];
+      } else {
+        usuarioData = [
+          [`ENTREGAS DE ${email.toUpperCase()}`],
+          [''],
+          ['Fecha Domicilio', 'Número Factura', 'Valor', 'Forma de Pago'],
+          ...entregasUsuario.map(e => [
+            e.fecha_domicilio,
+            e.numero_factura,
+            e.valor,
+            e.forma_pago || '',
+          ]),
+          [''],
+          ['TOTAL', '', totalUsuario, ''],
+        ];
+      }
 
       const usuarioSheet = XLSX.utils.aoa_to_sheet(usuarioData);
       
       // Ajustar ancho de columnas
-      usuarioSheet['!cols'] = [
-        { wch: 18 }, // Fecha Domicilio
-        { wch: 20 }, // Número Factura
-        { wch: 15 }, // Valor
-        { wch: 22 }, // Forma de Pago
-      ];
+      if (usuariosConSeparacion.has(emailNormalizado)) {
+        usuarioSheet['!cols'] = [
+          { wch: 18 }, // Fecha Domicilio (normales)
+          { wch: 20 }, // Número Factura (normales)
+          { wch: 15 }, // Valor (normales)
+          { wch: 22 }, // Forma de Pago (normales)
+          { wch: 3 },  // Separación
+          { wch: 18 }, // Fecha Domicilio (menores a 50)
+          { wch: 20 }, // Número Factura (menores a 50)
+          { wch: 15 }, // Valor (menores a 50)
+          { wch: 22 }, // Forma de Pago (menores a 50)
+        ];
+      } else {
+        usuarioSheet['!cols'] = [
+          { wch: 18 }, // Fecha Domicilio
+          { wch: 20 }, // Número Factura
+          { wch: 15 }, // Valor
+          { wch: 22 }, // Forma de Pago
+        ];
+      }
 
       XLSX.utils.book_append_sheet(workbook, usuarioSheet, nombreHoja);
     });
@@ -501,6 +561,5 @@ function AdminPage(): JSX.Element {
 }
 
 export default AdminPage;
-
 
 
