@@ -37,12 +37,15 @@ export default function AlistamientoPage(): JSX.Element {
     return headers;
   };
 
-  const cargarDatos = async () => {
+  const cargarDatos = async (fechaConsulta?: string) => {
     setCargando(true);
     setError('');
     try {
       const headers = await obtenerHeaders();
-      const resp = await fetch('/api/alistamientos/registro', { headers });
+      const url = fechaConsulta
+        ? `/api/alistamientos/registro?fecha=${encodeURIComponent(fechaConsulta)}`
+        : '/api/alistamientos/registro';
+      const resp = await fetch(url, { headers });
       const data = await resp.json();
       if (!resp.ok) throw new Error(data.error || 'No fue posible cargar el formulario');
 
@@ -119,6 +122,11 @@ export default function AlistamientoPage(): JSX.Element {
     }
   };
 
+  const cambiarFecha = (nuevaFecha: string) => {
+    if (!nuevaFecha) return;
+    cargarDatos(nuevaFecha);
+  };
+
   return (
     <ProtegerRuta>
       <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-100 overflow-y-auto">
@@ -142,7 +150,16 @@ export default function AlistamientoPage(): JSX.Element {
                   <div className="bg-gray-50 p-3 rounded"><strong>Nombre:</strong> {perfil.nombre_completo || '—'}</div>
                   <div className="bg-gray-50 p-3 rounded"><strong>Cédula:</strong> {perfil.cedula || '—'}</div>
                   <div className="bg-gray-50 p-3 rounded"><strong>Placa:</strong> {perfil.placa || '—'}</div>
-                  <div className="bg-gray-50 p-3 rounded"><strong>Fecha:</strong> {fecha}</div>
+                  <label className="bg-gray-50 p-3 rounded font-medium text-gray-800">
+                    Fecha
+                    <input
+                      type="date"
+                      value={fecha}
+                      disabled={cargando}
+                      onChange={(e) => cambiarFecha(e.target.value)}
+                      className="mt-1 block w-full border border-gray-400 rounded p-1 text-sm font-normal"
+                    />
+                  </label>
                 </div>
 
                 {yaRegistrado && (

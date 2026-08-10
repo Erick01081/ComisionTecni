@@ -101,9 +101,32 @@ export default function AdminAlistamientosPage() {
     }
   };
 
-  const descargarPdf = () => {
+  const descargarPdf = async () => {
     if (!seleccionado.user_id || !mesSeleccionado) return;
-    window.open(`/api/alistamientos/admin/pdf?user_id=${seleccionado.user_id}&month=${mesSeleccionado}`, '_blank');
+    setError('');
+    try {
+      const headers = await headersAuth();
+      const resp = await fetch(
+        `/api/alistamientos/admin/pdf?user_id=${encodeURIComponent(seleccionado.user_id)}&month=${encodeURIComponent(mesSeleccionado)}`,
+        { headers }
+      );
+      if (!resp.ok) {
+        const data = await resp.json();
+        throw new Error(data.error || 'No fue posible descargar el PDF');
+      }
+
+      const archivo = await resp.blob();
+      const url = URL.createObjectURL(archivo);
+      const enlace = document.createElement('a');
+      enlace.href = url;
+      enlace.download = `alistamiento-${mesSeleccionado}.pdf`;
+      document.body.appendChild(enlace);
+      enlace.click();
+      enlace.remove();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setError(err.message || 'No fue posible descargar el PDF');
+    }
   };
 
   return (
