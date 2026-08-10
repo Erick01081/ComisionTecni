@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { obtenerUsuarioActual, cerrarSesion, esAdministrador, esConsultaVentas } from '@/lib/auth';
+import { obtenerUsuarioActual, cerrarSesion, esAdministrador, esConsultaVentas, obtenerClienteSupabase } from '@/lib/auth';
 import Logo from '@/components/Logo';
 
 interface NavegacionProps {
-  paginaActual: 'registro' | 'mis-entregas' | 'admin' | 'consulta-factura';
+  paginaActual: 'registro' | 'mis-entregas' | 'admin' | 'consulta-factura' | 'alistamiento' | 'mis-alistamientos';
 }
 
 /**
@@ -26,6 +26,7 @@ export default function Navegacion({ paginaActual }: NavegacionProps) {
   const [usuario, setUsuario] = useState<any>(null);
   const [esAdmin, setIsAdmin] = useState(false);
   const [tieneConsultaVentas, setTieneConsultaVentas] = useState(false);
+  const [esDomiciliario, setEsDomiciliario] = useState(false);
 
   useEffect(() => {
     async function cargarUsuario() {
@@ -34,6 +35,23 @@ export default function Navegacion({ paginaActual }: NavegacionProps) {
       if (user) {
         setIsAdmin(esAdministrador(user.email));
         setTieneConsultaVentas(esConsultaVentas(user.email));
+        try {
+          const supabase = obtenerClienteSupabase();
+          let token = '';
+          if (supabase) {
+            const { data: { session } } = await supabase.auth.getSession();
+            token = session?.access_token || '';
+          }
+          const headers: HeadersInit = {};
+          if (token) headers.Authorization = 'Bearer ' + token;
+          const resp = await fetch('/api/alistamientos/perfil', { headers });
+          if (resp.ok) {
+            const perfil = await resp.json();
+            setEsDomiciliario(!!perfil?.es_domiciliario);
+          }
+        } catch (error) {
+          console.error('Error al cargar perfil de domiciliario:', error);
+        }
       }
     }
     cargarUsuario();
@@ -92,6 +110,30 @@ export default function Navegacion({ paginaActual }: NavegacionProps) {
             >
               Mis Entregas
             </button>
+            {esDomiciliario && (
+              <>
+                <button
+                  onClick={() => navegar('/alistamiento')}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    paginaActual === 'alistamiento'
+                      ? 'text-primary-600 border-b-2 border-primary-600'
+                      : 'text-gray-600 hover:text-primary-600'
+                  }`}
+                >
+                  Alistamiento diario
+                </button>
+                <button
+                  onClick={() => navegar('/mis-alistamientos')}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    paginaActual === 'mis-alistamientos'
+                      ? 'text-primary-600 border-b-2 border-primary-600'
+                      : 'text-gray-600 hover:text-primary-600'
+                  }`}
+                >
+                  Mis alistamientos
+                </button>
+              </>
+            )}
             {esAdmin && (
               <button
                 onClick={() => navegar('/admin')}
@@ -192,6 +234,30 @@ export default function Navegacion({ paginaActual }: NavegacionProps) {
             >
               Mis Entregas
             </button>
+            {esDomiciliario && (
+              <>
+                <button
+                  onClick={() => navegar('/alistamiento')}
+                  className={`block w-full text-left px-3 py-3 rounded-md text-base font-medium transition-colors ${
+                    paginaActual === 'alistamiento'
+                      ? 'bg-primary-50 text-primary-600'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  Alistamiento diario
+                </button>
+                <button
+                  onClick={() => navegar('/mis-alistamientos')}
+                  className={`block w-full text-left px-3 py-3 rounded-md text-base font-medium transition-colors ${
+                    paginaActual === 'mis-alistamientos'
+                      ? 'bg-primary-50 text-primary-600'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  Mis alistamientos
+                </button>
+              </>
+            )}
             {esAdmin && (
               <button
                 onClick={() => navegar('/admin')}
@@ -233,6 +299,3 @@ export default function Navegacion({ paginaActual }: NavegacionProps) {
     </nav>
   );
 }
-
-
-
