@@ -178,6 +178,7 @@ INSERT INTO domiciliario_perfiles (user_id, es_domiciliario)
 SELECT id, true
 FROM auth.users
 WHERE lower(email) IN (
+  'e.santiagom.s@gmail.com',
   'xander610@hotmail.com',
   'alejo16barreto@gmail.com',
   'luiscarlguerra.24@gmail.com',

@@ -135,17 +135,38 @@ export default function AdminAlistamientosPage() {
 
                 <div>
                   <h2 className="font-semibold mb-2">Perfil seleccionado</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <label className="text-sm col-span-2"><input type="checkbox" checked={!!seleccionado.es_domiciliario} onChange={(e) => setSeleccionado((s) => ({ ...s, es_domiciliario: e.target.checked }))} /> Es domiciliario</label>
-                    <input className="border rounded p-2 text-sm" placeholder="Nombre completo" value={seleccionado.nombre_completo || ''} onChange={(e) => setSeleccionado((s) => ({ ...s, nombre_completo: e.target.value }))} />
-                    <input className="border rounded p-2 text-sm" placeholder="Cédula" value={seleccionado.cedula || ''} onChange={(e) => setSeleccionado((s) => ({ ...s, cedula: e.target.value }))} />
-                    <input className="border rounded p-2 text-sm" placeholder="Placa" value={seleccionado.placa || ''} onChange={(e) => setSeleccionado((s) => ({ ...s, placa: e.target.value.toUpperCase() }))} />
-                    <input className="border rounded p-2 text-sm" placeholder="SOAT" value={seleccionado.soat || ''} onChange={(e) => setSeleccionado((s) => ({ ...s, soat: e.target.value }))} />
-                    <input className="border rounded p-2 text-sm" type="date" placeholder="Vigencia SOAT" value={seleccionado.soat_vigencia || ''} onChange={(e) => setSeleccionado((s) => ({ ...s, soat_vigencia: e.target.value }))} />
-                    <input className="border rounded p-2 text-sm" type="date" placeholder="Tecnomecánica" value={seleccionado.revision_tecnico_mecanica || ''} onChange={(e) => setSeleccionado((s) => ({ ...s, revision_tecnico_mecanica: e.target.value }))} />
-                    <input className="border rounded p-2 text-sm" type="date" placeholder="Certificado gases" value={seleccionado.certificado_gases || ''} onChange={(e) => setSeleccionado((s) => ({ ...s, certificado_gases: e.target.value }))} />
-                    <input className="border rounded p-2 text-sm" placeholder="Tarjeta de propiedad" value={seleccionado.tarjeta_propiedad || ''} onChange={(e) => setSeleccionado((s) => ({ ...s, tarjeta_propiedad: e.target.value }))} />
-                    <input className="border rounded p-2 text-sm" type="date" placeholder="Licencia A2 vigencia" value={seleccionado.licencia_a2_vigencia || ''} onChange={(e) => setSeleccionado((s) => ({ ...s, licencia_a2_vigencia: e.target.value }))} />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <label className="text-sm col-span-2 flex items-center gap-2 text-gray-900 font-medium">
+                      <input type="checkbox" checked={!!seleccionado.es_domiciliario} onChange={(e) => setSeleccionado((s) => ({ ...s, es_domiciliario: e.target.checked }))} />
+                      Es domiciliario
+                    </label>
+                    <label className="text-sm font-medium text-gray-800">Nombre completo
+                      <input className="mt-1 block w-full rounded border border-gray-400 bg-white p-2 text-sm text-gray-900 focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600" value={seleccionado.nombre_completo || ''} onChange={(e) => setSeleccionado((s) => ({ ...s, nombre_completo: e.target.value }))} />
+                    </label>
+                    <label className="text-sm font-medium text-gray-800">Cédula
+                      <input className="mt-1 block w-full rounded border border-gray-400 bg-white p-2 text-sm text-gray-900 focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600" value={seleccionado.cedula || ''} onChange={(e) => setSeleccionado((s) => ({ ...s, cedula: e.target.value }))} />
+                    </label>
+                    <label className="text-sm font-medium text-gray-800">Placa
+                      <input className="mt-1 block w-full rounded border border-gray-400 bg-white p-2 text-sm text-gray-900 focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600" value={seleccionado.placa || ''} onChange={(e) => setSeleccionado((s) => ({ ...s, placa: e.target.value.toUpperCase() }))} />
+                    </label>
+                    <label className="text-sm font-medium text-gray-800">SOAT
+                      <input className="mt-1 block w-full rounded border border-gray-400 bg-white p-2 text-sm text-gray-900 focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600" value={seleccionado.soat || ''} onChange={(e) => setSeleccionado((s) => ({ ...s, soat: e.target.value }))} />
+                    </label>
+                    <label className="text-sm font-medium text-gray-800">Vigencia SOAT
+                      <input className="mt-1 block w-full rounded border border-gray-400 bg-white p-2 text-sm text-gray-900 focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600" type="date" value={seleccionado.soat_vigencia || ''} onChange={(e) => setSeleccionado((s) => ({ ...s, soat_vigencia: e.target.value }))} />
+                    </label>
+                    <label className="text-sm font-medium text-gray-800">Tecnomecánica
+                      <input className="mt-1 block w-full rounded border border-gray-400 bg-white p-2 text-sm text-gray-900 focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600" type="date" value={seleccionado.revision_tecnico_mecanica || ''} onChange={(e) => setSeleccionado((s) => ({ ...s, revision_tecnico_mecanica: e.target.value }))} />
+                    </label>
+                    <label className="text-sm font-medium text-gray-800">Certificado de gases
+                      <input className="mt-1 block w-full rounded border border-gray-400 bg-white p-2 text-sm text-gray-900 focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600" type="date" value={seleccionado.certificado_gases || ''} onChange={(e) => setSeleccionado((s) => ({ ...s, certificado_gases: e.target.value }))} />
+                    </label>
+                    <label className="text-sm font-medium text-gray-800">Tarjeta de propiedad
+                      <input className="mt-1 block w-full rounded border border-gray-400 bg-white p-2 text-sm text-gray-900 focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600" value={seleccionado.tarjeta_propiedad || ''} onChange={(e) => setSeleccionado((s) => ({ ...s, tarjeta_propiedad: e.target.value }))} />
+                    </label>
+                    <label className="text-sm font-medium text-gray-800">Vigencia licencia A2
+                      <input className="mt-1 block w-full rounded border border-gray-400 bg-white p-2 text-sm text-gray-900 focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600" type="date" value={seleccionado.licencia_a2_vigencia || ''} onChange={(e) => setSeleccionado((s) => ({ ...s, licencia_a2_vigencia: e.target.value }))} />
+                    </label>
                   </div>
 
                   <div className="mt-3 flex flex-wrap gap-2">
