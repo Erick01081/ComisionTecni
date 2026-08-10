@@ -25,6 +25,7 @@ export function generarPdfAlistamientoMensual(params: {
   doc.on('data', (chunk) => chunks.push(chunk));
 
   const diasMes = new Date(year, month, 0).getDate();
+  const anchoPagina = doc.page.width - 48;
   const mapaDiaPorAlistamiento = new Map<string, number>();
   for (const al of alistamientos) {
     const dia = parseInt(String(al.fecha).slice(8, 10), 10);
@@ -38,17 +39,17 @@ export function generarPdfAlistamientoMensual(params: {
     matriz.set(`${d.item_id}-${dia}`, ESTADO_ABREVIADO[d.estado] || '-');
   }
 
-  doc.rect(24, 24, 794, 42).fill(azul);
-  doc.fillColor('#ffffff').fontSize(16).text('Alistamiento Diario de Motocicleta', 24, 35, { width: 794, align: 'center' });
-  doc.fillColor(grisTexto).fontSize(10).text(`Consolidado mensual · ${String(month).padStart(2, '0')}/${year}`, 24, 76, { width: 794, align: 'center' });
-  doc.fontSize(9).text(`Nombre: ${perfil?.nombre_completo || 'N/D'}   |   Cédula: ${perfil?.cedula || 'N/D'}   |   Placa: ${perfil?.placa || 'N/D'}`, 24, 94, { width: 794, align: 'center' });
-  doc.text(`SOAT: ${perfil?.soat || 'N/D'} (${perfil?.soat_vigencia || 'N/D'})   |   Tecnomecánica: ${perfil?.revision_tecnico_mecanica || 'N/D'}   |   Licencia A2: ${perfil?.licencia_a2_vigencia || 'N/D'}`, 24, 108, { width: 794, align: 'center' });
-  doc.fillColor(azul).fontSize(8).text('Leyenda: B = Bueno · M = Malo · NA = No aplica · F = Festivo', 24, 124, { width: 794, align: 'center' });
+  doc.rect(24, 24, anchoPagina, 42).fill(azul);
+  doc.fillColor('#ffffff').fontSize(16).text('Alistamiento Diario de Motocicleta', 24, 35, { width: anchoPagina, align: 'center' });
+  doc.fillColor(grisTexto).fontSize(10).text(`Consolidado mensual · ${String(month).padStart(2, '0')}/${year}`, 24, 76, { width: anchoPagina, align: 'center' });
+  doc.fontSize(9).text(`Nombre: ${perfil?.nombre_completo || 'N/D'}   |   Cédula: ${perfil?.cedula || 'N/D'}   |   Placa: ${perfil?.placa || 'N/D'}`, 24, 94, { width: anchoPagina, align: 'center' });
+  doc.text(`SOAT: ${perfil?.soat || 'N/D'} (${perfil?.soat_vigencia || 'N/D'})   |   Tecnomecánica: ${perfil?.revision_tecnico_mecanica || 'N/D'}   |   Licencia A2: ${perfil?.licencia_a2_vigencia || 'N/D'}`, 24, 108, { width: anchoPagina, align: 'center' });
+  doc.fillColor(azul).fontSize(8).text('Leyenda: B = Bueno · M = Malo · NA = No aplica · F = Festivo', 24, 124, { width: anchoPagina, align: 'center' });
 
   const startX = 24;
   let y = 142;
-  const nombreAncho = 220;
-  const diaAncho = 16;
+  const nombreAncho = 240;
+  const diaAncho = (anchoPagina - nombreAncho) / diasMes;
   const filaAlto = 16;
 
   const pintarEncabezado = () => {
@@ -82,7 +83,7 @@ export function generarPdfAlistamientoMensual(params: {
   // La segunda página queda en formato horizontal: continuación de la tabla,
   // observaciones y firma se presentan juntas para facilitar la impresión.
   const centroX = startX;
-  const ancho = 794;
+  const ancho = anchoPagina;
   const inicioResumenY = y + 18;
   doc.fillColor(azul).fontSize(14).text('Observaciones del mes', centroX, inicioResumenY, { width: ancho, align: 'center' });
   doc.fillColor(grisTexto).fontSize(9).text(`Consolidado de ${String(month).padStart(2, '0')}/${year}`, centroX, inicioResumenY + 20, { width: ancho, align: 'center' });
