@@ -12,6 +12,7 @@ Aplicación web para registro y consulta de entregas con autenticación Supabase
 - ✅ Exportación de datos a CSV
 - ✅ Forma de pago "Pendiente de Pago"
 - ✅ Reporte semanal por correo a administradores (viernes 2:00 p.m.)
+- ✅ Módulo de alistamiento diario de motocicletas para domiciliarios
 - ✅ Interfaz responsive y moderna
 - ✅ Seguridad con Row Level Security (RLS)
 
@@ -183,6 +184,5 @@ ComisionesTecni/
 ## Licencia
 
 Este proyecto es privado y de uso interno.
-
 
 

@@ -283,5 +283,28 @@ export async function recuperarContrasena(email: string): Promise<void> {
   }
 }
 
+/**
+ * Verifica si el usuario autenticado está habilitado como domiciliario para alistamiento.
+ *
+ * Consulta la tabla `domiciliario_perfiles` del usuario actual y valida la marca
+ * `es_domiciliario`. Esta autorización es administrable desde base de datos.
+ */
+export async function esUsuarioDomiciliario(): Promise<boolean> {
+  const supabase = obtenerClienteSupabase();
+  if (!supabase) return false;
+
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
+  if (!userId) return false;
+
+  const { data, error } = await supabase
+    .from('domiciliario_perfiles')
+    .select('es_domiciliario')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) return false;
+  return !!data?.es_domiciliario;
+}
 
 
