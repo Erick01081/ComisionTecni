@@ -53,8 +53,8 @@ export async function crearPerfilDomiciliarioSiNoExiste(userId: string, accessTo
   await supabase.from('domiciliario_perfiles').insert([{ user_id: userId, es_domiciliario: false }]);
 }
 
-export async function obtenerItemsChecklist(): Promise<ItemChecklist[]> {
-  const supabase = obtenerClienteSupabase();
+export async function obtenerItemsChecklist(accessToken?: string): Promise<ItemChecklist[]> {
+  const supabase = await obtenerClienteAutenticado(accessToken);
   if (!supabase) return [];
   const { data, error } = await supabase
     .from('alistamiento_items_catalogo')

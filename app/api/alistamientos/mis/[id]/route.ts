@@ -12,7 +12,7 @@ export async function GET(
     const accessToken = obtenerAccessTokenDesdeRequest(request);
     const alistamiento = await obtenerAlistamientoPorId(usuario.id, params.id, accessToken);
     if (!alistamiento) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
-    const items = await obtenerItemsChecklist();
+    const items = await obtenerItemsChecklist(accessToken);
     return NextResponse.json({ alistamiento, items });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Error al consultar alistamiento' }, { status: 500 });

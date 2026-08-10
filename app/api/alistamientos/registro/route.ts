@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     const accessToken = obtenerAccessTokenDesdeRequest(request);
     await crearPerfilDomiciliarioSiNoExiste(usuario.id, accessToken);
     const perfil = await obtenerPerfilDomiciliario(usuario.id, accessToken);
-    const items = await obtenerItemsChecklist();
+    const items = await obtenerItemsChecklist(accessToken);
     const fecha = request.nextUrl.searchParams.get('fecha') || fechaHoyBogota();
     const alistamientoHoy = await obtenerAlistamientoPorFecha(usuario.id, fecha, accessToken);
 
@@ -47,7 +47,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Fecha inválida' }, { status: 400 });
     }
 
-    const catalogo = await obtenerItemsChecklist();
+    const accessToken = obtenerAccessTokenDesdeRequest(request);
+    const catalogo = await obtenerItemsChecklist(accessToken);
     if (catalogo.length === 0) {
       return NextResponse.json({ error: 'No hay catálogo de checklist configurado' }, { status: 500 });
     }
@@ -72,7 +73,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Todos los ítems deben estar presentes una sola vez' }, { status: 400 });
     }
 
-    const accessToken = obtenerAccessTokenDesdeRequest(request);
     const existente = await obtenerAlistamientoPorFecha(usuario.id, fecha, accessToken);
     if (existente) {
       return NextResponse.json({ error: 'Ya existe un alistamiento para esta fecha' }, { status: 409 });
