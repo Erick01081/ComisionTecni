@@ -18,6 +18,10 @@ export function generarPdfAlistamientoMensual(params: {
   const { perfil, catalogo, alistamientos, detalles, month, year } = params;
   const doc = new PDFDocument({ margin: 24, size: 'A4', layout: 'landscape' });
   const chunks: Buffer[] = [];
+  const azul = '#075985';
+  const azulClaro = '#e0f2fe';
+  const grisBorde = '#94a3b8';
+  const grisTexto = '#334155';
   doc.on('data', (chunk) => chunks.push(chunk));
 
   const diasMes = new Date(year, month, 0).getDate();
@@ -34,32 +38,26 @@ export function generarPdfAlistamientoMensual(params: {
     matriz.set(`${d.item_id}-${dia}`, ESTADO_ABREVIADO[d.estado] || '-');
   }
 
-  doc.fontSize(14).text('Alistamiento Diario de Motocicleta - Consolidado Mensual', { align: 'center' });
-  doc.moveDown(0.5);
-  doc.fontSize(10).text(`Mes/Año: ${String(month).padStart(2, '0')}/${year}`);
-  doc.text(`Nombre: ${perfil?.nombre_completo || 'N/D'}`);
-  doc.text(`Cédula: ${perfil?.cedula || 'N/D'}`);
-  doc.text(`Placa: ${perfil?.placa || 'N/D'}`);
-  doc.text(`SOAT: ${perfil?.soat || 'N/D'} | Vigencia SOAT: ${perfil?.soat_vigencia || 'N/D'}`);
-  doc.text(`Tecnomecánica: ${perfil?.revision_tecnico_mecanica || 'N/D'} | Gases: ${perfil?.certificado_gases || 'N/D'}`);
-  doc.text(`Tarjeta propiedad: ${perfil?.tarjeta_propiedad || 'N/D'} | Licencia A2: ${perfil?.licencia_a2_vigencia || 'N/D'}`);
-  doc.moveDown(0.5);
-  doc.text('Leyenda: B=Bueno, M=Malo, NA=No aplica, F=Festivo', { underline: true });
-  doc.moveDown(0.4);
+  doc.rect(24, 24, 794, 42).fill(azul);
+  doc.fillColor('#ffffff').fontSize(16).text('Alistamiento Diario de Motocicleta', 24, 35, { width: 794, align: 'center' });
+  doc.fillColor(grisTexto).fontSize(10).text(`Consolidado mensual · ${String(month).padStart(2, '0')}/${year}`, 24, 76, { width: 794, align: 'center' });
+  doc.fontSize(9).text(`Nombre: ${perfil?.nombre_completo || 'N/D'}   |   Cédula: ${perfil?.cedula || 'N/D'}   |   Placa: ${perfil?.placa || 'N/D'}`, 24, 94, { width: 794, align: 'center' });
+  doc.text(`SOAT: ${perfil?.soat || 'N/D'} (${perfil?.soat_vigencia || 'N/D'})   |   Tecnomecánica: ${perfil?.revision_tecnico_mecanica || 'N/D'}   |   Licencia A2: ${perfil?.licencia_a2_vigencia || 'N/D'}`, 24, 108, { width: 794, align: 'center' });
+  doc.fillColor(azul).fontSize(8).text('Leyenda: B = Bueno · M = Malo · NA = No aplica · F = Festivo', 24, 124, { width: 794, align: 'center' });
 
   const startX = 24;
-  let y = doc.y;
+  let y = 142;
   const nombreAncho = 220;
   const diaAncho = 16;
   const filaAlto = 16;
 
   const pintarEncabezado = () => {
-    doc.rect(startX, y, nombreAncho, filaAlto).stroke();
-    doc.fontSize(8).text('Elemento', startX + 4, y + 4, { width: nombreAncho - 8 });
+    doc.fillColor(azulClaro).strokeColor(grisBorde).rect(startX, y, nombreAncho, filaAlto).fillAndStroke();
+    doc.fillColor(grisTexto).fontSize(8).text('Elemento', startX + 4, y + 4, { width: nombreAncho - 8 });
     for (let d = 1; d <= diasMes; d += 1) {
       const x = startX + nombreAncho + (d - 1) * diaAncho;
-      doc.rect(x, y, diaAncho, filaAlto).stroke();
-      doc.fontSize(7).text(String(d), x + 3, y + 4, { width: diaAncho - 2, align: 'center' });
+      doc.fillColor(azulClaro).strokeColor(grisBorde).rect(x, y, diaAncho, filaAlto).fillAndStroke();
+      doc.fillColor(grisTexto).fontSize(7).text(String(d), x + 3, y + 4, { width: diaAncho - 2, align: 'center' });
     }
     y += filaAlto;
   };
@@ -71,33 +69,38 @@ export function generarPdfAlistamientoMensual(params: {
       y = 24;
       pintarEncabezado();
     }
-    doc.rect(startX, y, nombreAncho, filaAlto).stroke();
-    doc.fontSize(7).text(item.nombre, startX + 3, y + 4, { width: nombreAncho - 6 });
+    doc.fillColor('#ffffff').strokeColor(grisBorde).rect(startX, y, nombreAncho, filaAlto).fillAndStroke();
+    doc.fillColor(grisTexto).fontSize(7).text(item.nombre, startX + 3, y + 4, { width: nombreAncho - 6 });
     for (let d = 1; d <= diasMes; d += 1) {
       const x = startX + nombreAncho + (d - 1) * diaAncho;
-      doc.rect(x, y, diaAncho, filaAlto).stroke();
-      doc.fontSize(7).text(matriz.get(`${item.id}-${d}`) || '-', x + 1, y + 4, { width: diaAncho - 2, align: 'center' });
+      doc.fillColor('#ffffff').strokeColor(grisBorde).rect(x, y, diaAncho, filaAlto).fillAndStroke();
+      doc.fillColor(grisTexto).fontSize(7).text(matriz.get(`${item.id}-${d}`) || '-', x + 1, y + 4, { width: diaAncho - 2, align: 'center' });
     }
     y += filaAlto;
   }
 
-  doc.moveDown();
-  doc.fontSize(11).text('Observaciones del mes');
+  doc.addPage({ margin: 48, size: 'A4' });
+  const ancho = doc.page.width - 96;
+  const centroX = 48;
+  doc.fillColor(azul).fontSize(18).text('Observaciones del mes', centroX, 74, { width: ancho, align: 'center' });
+  doc.fillColor(grisTexto).fontSize(10).text(`Consolidado de ${String(month).padStart(2, '0')}/${year}`, centroX, 102, { width: ancho, align: 'center' });
   const observaciones = alistamientos
     .filter((a) => a.observaciones && a.observaciones.trim() !== '')
     .map((a) => `${a.fecha}: ${a.observaciones}`);
 
   if (observaciones.length === 0) {
-    doc.fontSize(9).text('Sin observaciones registradas.');
+    doc.fillColor(grisTexto).fontSize(10).text('Sin observaciones registradas.', centroX, 156, { width: ancho, align: 'center' });
   } else {
-    observaciones.forEach((o) => doc.fontSize(9).text(`• ${o}`));
+    const altoCaja = Math.max(100, Math.min(240, 28 + observaciones.length * 22));
+    doc.roundedRect(centroX, 142, ancho, altoCaja, 8).fillAndStroke('#f8fafc', grisBorde);
+    doc.fillColor(grisTexto).fontSize(10).text(observaciones.map((o) => `• ${o}`).join('\n'), centroX + 24, 162, { width: ancho - 48, align: 'center', lineGap: 8 });
   }
 
-  doc.moveDown(2);
-  doc.fontSize(10).text('Firma del responsable: ____________________________________');
-  doc.moveDown(1);
-  doc.text('Nombre: _________________________');
-  doc.text('Cédula: _________________________');
+  const firmaY = observaciones.length === 0 ? 300 : 142 + Math.max(100, Math.min(240, 28 + observaciones.length * 22)) + 90;
+  doc.strokeColor(grisBorde).moveTo(centroX + 190, firmaY).lineTo(centroX + ancho - 190, firmaY).stroke();
+  doc.fillColor(grisTexto).fontSize(11).text('Firma del responsable', centroX, firmaY + 12, { width: ancho, align: 'center' });
+  doc.fontSize(10).text('Nombre: ____________________________________', centroX, firmaY + 48, { width: ancho, align: 'center' });
+  doc.text('Cédula: _____________________________________', centroX, firmaY + 70, { width: ancho, align: 'center' });
 
   doc.on('end', () => {});
   doc.end();
