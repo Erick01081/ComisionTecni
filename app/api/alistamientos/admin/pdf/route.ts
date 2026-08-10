@@ -4,6 +4,8 @@ import { obtenerUsuarioDesdeRequest } from '@/lib/request-auth';
 import { generarPdfAlistamientoMensual } from '@/lib/alistamiento-pdf';
 import { obtenerResumenMensualAdmin } from '@/lib/alistamientos-database';
 
+export const runtime = 'nodejs';
+
 export async function GET(request: NextRequest) {
   try {
     const usuario = await obtenerUsuarioDesdeRequest(request);
