@@ -43,7 +43,7 @@ export default function Navegacion({ paginaActual }: NavegacionProps) {
             token = session?.access_token || '';
           }
           const headers: HeadersInit = {};
-          if (token) headers.Authorization = `******
+          if (token) headers.Authorization = 'Bearer ' + token;
           const resp = await fetch('/api/alistamientos/perfil', { headers });
           if (resp.ok) {
             const perfil = await resp.json();

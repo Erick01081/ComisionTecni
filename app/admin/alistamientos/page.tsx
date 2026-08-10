@@ -49,7 +49,7 @@ export default function AdminAlistamientosPage() {
     const supabase = obtenerClienteSupabase();
     if (!supabase) return headers;
     const { data: { session } } = await supabase.auth.getSession();
-    if (session?.access_token) headers.Authorization = `******;
+    if (session?.access_token) headers.Authorization = 'Bearer ' + session.access_token;
     return headers;
   };
 
