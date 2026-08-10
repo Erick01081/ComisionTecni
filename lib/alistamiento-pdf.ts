@@ -79,25 +79,29 @@ export function generarPdfAlistamientoMensual(params: {
     y += filaAlto;
   }
 
-  doc.addPage({ margin: 48, size: 'A4' });
-  const ancho = doc.page.width - 96;
-  const centroX = 48;
-  doc.fillColor(azul).fontSize(18).text('Observaciones del mes', centroX, 74, { width: ancho, align: 'center' });
-  doc.fillColor(grisTexto).fontSize(10).text(`Consolidado de ${String(month).padStart(2, '0')}/${year}`, centroX, 102, { width: ancho, align: 'center' });
+  // La segunda página queda en formato horizontal: continuación de la tabla,
+  // observaciones y firma se presentan juntas para facilitar la impresión.
+  const centroX = startX;
+  const ancho = 794;
+  const inicioResumenY = y + 18;
+  doc.fillColor(azul).fontSize(14).text('Observaciones del mes', centroX, inicioResumenY, { width: ancho, align: 'center' });
+  doc.fillColor(grisTexto).fontSize(9).text(`Consolidado de ${String(month).padStart(2, '0')}/${year}`, centroX, inicioResumenY + 20, { width: ancho, align: 'center' });
   const observaciones = alistamientos
     .filter((a) => a.observaciones && a.observaciones.trim() !== '')
     .map((a) => `${a.fecha}: ${a.observaciones}`);
 
   if (observaciones.length === 0) {
-    doc.fillColor(grisTexto).fontSize(10).text('Sin observaciones registradas.', centroX, 156, { width: ancho, align: 'center' });
+    doc.fillColor(grisTexto).fontSize(10).text('Sin observaciones registradas.', centroX, inicioResumenY + 58, { width: ancho, align: 'center' });
   } else {
-    const altoCaja = Math.max(100, Math.min(240, 28 + observaciones.length * 22));
-    doc.roundedRect(centroX, 142, ancho, altoCaja, 8).fillAndStroke('#f8fafc', grisBorde);
-    doc.fillColor(grisTexto).fontSize(10).text(observaciones.map((o) => `• ${o}`).join('\n'), centroX + 24, 162, { width: ancho - 48, align: 'center', lineGap: 8 });
+    const altoCaja = Math.max(54, Math.min(120, 22 + observaciones.length * 18));
+    doc.roundedRect(centroX, inicioResumenY + 48, ancho, altoCaja, 8).fillAndStroke('#f8fafc', grisBorde);
+    doc.fillColor(grisTexto).fontSize(9).text(observaciones.map((o) => `• ${o}`).join('\n'), centroX + 24, inicioResumenY + 64, { width: ancho - 48, align: 'center', lineGap: 5 });
   }
 
-  const firmaY = observaciones.length === 0 ? 300 : 142 + Math.max(100, Math.min(240, 28 + observaciones.length * 22)) + 90;
-  doc.strokeColor(grisBorde).moveTo(centroX + 190, firmaY).lineTo(centroX + ancho - 190, firmaY).stroke();
+  const firmaY = observaciones.length === 0
+    ? inicioResumenY + 126
+    : inicioResumenY + 48 + Math.max(54, Math.min(120, 22 + observaciones.length * 18)) + 54;
+  doc.strokeColor(grisBorde).moveTo(centroX + 220, firmaY).lineTo(centroX + ancho - 220, firmaY).stroke();
   doc.fillColor(grisTexto).fontSize(11).text('Firma del responsable', centroX, firmaY + 12, { width: ancho, align: 'center' });
   doc.fontSize(10).text('Nombre: ____________________________________', centroX, firmaY + 48, { width: ancho, align: 'center' });
   doc.text('Cédula: _____________________________________', centroX, firmaY + 70, { width: ancho, align: 'center' });
