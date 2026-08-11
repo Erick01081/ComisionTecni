@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/pendiente-pago",
       "schedule": "0 19 * * 5"
+    },
+    {
+      "path": "/api/cron/alertas-documentos",
+      "schedule": "0 13 * * *"
     }
   ]
 }

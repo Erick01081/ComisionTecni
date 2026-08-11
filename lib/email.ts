@@ -2,7 +2,7 @@
  * Parámetros para enviar un correo electrónico
  */
 export interface ParametrosCorreo {
-  destinatario: string;
+  destinatario: string | string[];
   asunto: string;
   contenidoHtml: string;
 }
@@ -52,7 +52,7 @@ export async function enviarCorreo(parametros: ParametrosCorreo): Promise<Result
       },
       body: JSON.stringify({
         from: remitente,
-        to: [parametros.destinatario],
+        to: Array.isArray(parametros.destinatario) ? parametros.destinatario : [parametros.destinatario],
         subject: parametros.asunto,
         html: parametros.contenidoHtml,
       }),

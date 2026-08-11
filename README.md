@@ -12,6 +12,7 @@ Aplicación web para registro y consulta de entregas con autenticación Supabase
 - ✅ Exportación de datos a CSV
 - ✅ Forma de pago "Pendiente de Pago"
 - ✅ Reporte semanal por correo a administradores (viernes 2:00 p.m.)
+- ✅ Alertas diarias por vencimiento de SOAT y técnico-mecánica
 - ✅ Módulo de alistamiento diario de motocicletas para domiciliarios
 - ✅ Interfaz responsive y moderna
 - ✅ Seguridad con Row Level Security (RLS)
@@ -94,6 +95,16 @@ Para probar manualmente:
 
 ```bash
 curl -H "Authorization: Bearer TU_CRON_SECRET" https://tu-dominio.vercel.app/api/cron/pendiente-pago
+```
+
+## Alertas de SOAT y técnico-mecánica
+
+Todos los días a las **8:00 a.m. (hora de Bogotá)** se revisan los perfiles activos de domiciliarios. Si un SOAT o una revisión técnico-mecánica vence entre hoy y los siguientes 14 días, se envía un correo a `e.santiagom.s@gmail.com` y `ventas@tecnirecargas.com`.
+
+No se envía correo cuando no hay vencimientos próximos. Para probarlo manualmente:
+
+```bash
+curl -H "Authorization: Bearer TU_CRON_SECRET" https://tu-dominio.vercel.app/api/cron/alertas-documentos
 ```
 
 ## Estructura del Proyecto
@@ -184,5 +195,4 @@ ComisionesTecni/
 ## Licencia
 
 Este proyecto es privado y de uso interno.
-
 
