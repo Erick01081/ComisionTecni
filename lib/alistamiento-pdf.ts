@@ -117,3 +117,90 @@ export function generarPdfAlistamientoMensual(params: {
     });
   });
 }
+
+export function generarPdfMantenimientosMoto(params: {
+  perfil: { nombre_completo?: string | null; placa?: string | null };
+  mantenimientos: Array<{
+    fecha: string;
+    descripcion: string;
+    kilometraje_actual: number;
+    kilometraje_proximo_cambio: number | null;
+    valor: number | null;
+  }>;
+}) {
+  const { perfil, mantenimientos } = params;
+  const doc = new PDFDocument({ margin: 36, size: 'A4', layout: 'landscape' });
+  const chunks: Buffer[] = [];
+  const ancho = doc.page.width - 72;
+  const azul = '#075985';
+  const borde = '#94a3b8';
+  const texto = '#334155';
+  doc.on('data', (chunk) => chunks.push(chunk));
+
+  const formatoNumero = (valor: number | null) => valor === null || valor === undefined ? '—' : new Intl.NumberFormat('es-CO').format(Number(valor));
+  const formatoValor = (valor: number | null) => valor === null || valor === undefined ? '—' : new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(Number(valor));
+  const formatoFecha = (fecha: string) => {
+    const [anio, mes, dia] = String(fecha).slice(0, 10).split('-');
+    return anio && mes && dia ? `${dia}/${mes}/${anio}` : fecha;
+  };
+
+  const dibujarCabecera = (y: number) => {
+    doc.rect(36, y, ancho, 58).fill(azul);
+    doc.fillColor('#ffffff').fontSize(17).text('Tecnirecargas', 36, y + 11, { width: ancho, align: 'center' });
+    doc.fontSize(10).text('Reporte de mantenimientos de motocicleta', 36, y + 33, { width: ancho, align: 'center' });
+    doc.fillColor(texto).fontSize(11).text(`Placa: ${perfil.placa || 'N/D'}   |   Responsable: ${perfil.nombre_completo || 'N/D'}`, 36, y + 70, { width: ancho, align: 'center' });
+    return y + 98;
+  };
+
+  const columnas = [
+    { titulo: 'Fecha', ancho: 76 },
+    { titulo: 'Descripción', ancho: 310 },
+    { titulo: 'Km actual', ancho: 105 },
+    { titulo: 'Próximo cambio', ancho: 122 },
+    { titulo: 'Valor', ancho: ancho - 76 - 310 - 105 - 122 },
+  ];
+  const dibujarTitulos = (y: number) => {
+    let x = 36;
+    for (const columna of columnas) {
+      doc.fillColor('#e0f2fe').strokeColor(borde).rect(x, y, columna.ancho, 22).fillAndStroke();
+      doc.fillColor(texto).fontSize(8).text(columna.titulo, x + 4, y + 7, { width: columna.ancho - 8, align: columna.titulo === 'Descripción' ? 'left' : 'center' });
+      x += columna.ancho;
+    }
+    return y + 22;
+  };
+
+  let y = dibujarCabecera(36);
+  y = dibujarTitulos(y);
+  if (mantenimientos.length === 0) {
+    doc.fillColor(texto).fontSize(10).text('No hay mantenimientos registrados para esta motocicleta.', 36, y + 20, { width: ancho, align: 'center' });
+  }
+  for (const mantenimiento of mantenimientos) {
+    const altoDescripcion = doc.font('Helvetica').fontSize(9).heightOfString(mantenimiento.descripcion, { width: columnas[1].ancho - 8 });
+    const altoFila = Math.max(28, altoDescripcion + 12);
+    if (y + altoFila > doc.page.height - 42) {
+      doc.addPage({ margin: 36, size: 'A4', layout: 'landscape' });
+      y = dibujarCabecera(36);
+      y = dibujarTitulos(y);
+    }
+    const valores = [
+      formatoFecha(mantenimiento.fecha),
+      mantenimiento.descripcion,
+      formatoNumero(mantenimiento.kilometraje_actual),
+      formatoNumero(mantenimiento.kilometraje_proximo_cambio),
+      formatoValor(mantenimiento.valor),
+    ];
+    let x = 36;
+    valores.forEach((valor, indice) => {
+      const columna = columnas[indice];
+      doc.fillColor('#ffffff').strokeColor(borde).rect(x, y, columna.ancho, altoFila).fillAndStroke();
+      doc.fillColor(texto).fontSize(9).text(valor, x + 4, y + 7, { width: columna.ancho - 8, align: indice === 1 ? 'left' : 'center' });
+      x += columna.ancho;
+    });
+    y += altoFila;
+  }
+
+  doc.end();
+  return new Promise<Buffer>((resolve) => {
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+  });
+}

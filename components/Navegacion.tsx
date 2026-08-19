@@ -6,7 +6,7 @@ import { obtenerUsuarioActual, cerrarSesion, esAdministrador, esConsultaVentas, 
 import Logo from '@/components/Logo';
 
 interface NavegacionProps {
-  paginaActual: 'registro' | 'mis-entregas' | 'admin' | 'consulta-factura' | 'alistamiento' | 'mis-alistamientos';
+  paginaActual: 'registro' | 'mis-entregas' | 'admin' | 'consulta-factura' | 'alistamiento' | 'mis-alistamientos' | 'mantenimientos' | 'admin-mantenimientos';
 }
 
 /**
@@ -132,6 +132,16 @@ export default function Navegacion({ paginaActual }: NavegacionProps) {
                 >
                   Mis alistamientos
                 </button>
+                <button
+                  onClick={() => navegar('/alistamiento/mantenimientos')}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    paginaActual === 'mantenimientos'
+                      ? 'text-primary-600 border-b-2 border-primary-600'
+                      : 'text-gray-600 hover:text-primary-600'
+                  }`}
+                >
+                  Mantenimientos
+                </button>
               </>
             )}
             {esAdmin && (
@@ -255,6 +265,16 @@ export default function Navegacion({ paginaActual }: NavegacionProps) {
                   }`}
                 >
                   Mis alistamientos
+                </button>
+                <button
+                  onClick={() => navegar('/alistamiento/mantenimientos')}
+                  className={`block w-full text-left px-3 py-3 rounded-md text-base font-medium transition-colors ${
+                    paginaActual === 'mantenimientos'
+                      ? 'bg-primary-50 text-primary-600'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  Mantenimientos
                 </button>
               </>
             )}

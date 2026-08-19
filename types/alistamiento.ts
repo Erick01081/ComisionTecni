@@ -40,3 +40,15 @@ export interface AlistamientoConItems extends Alistamiento {
     estado: EstadoAlistamiento;
   }>;
 }
+
+export interface MantenimientoMoto {
+  id: string;
+  user_id: string;
+  placa_snapshot: string;
+  fecha: string;
+  descripcion: string;
+  kilometraje_actual: number;
+  kilometraje_proximo_cambio: number | null;
+  valor: number | null;
+  created_at: string;
+}

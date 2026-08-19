@@ -135,6 +135,22 @@ CREATE TABLE IF NOT EXISTS alistamiento_detalles (
 CREATE INDEX IF NOT EXISTS idx_alistamiento_detalles_alistamiento_id ON alistamiento_detalles(alistamiento_id);
 CREATE INDEX IF NOT EXISTS idx_alistamiento_detalles_item_id ON alistamiento_detalles(item_id);
 
+-- Historial de mantenimientos realizados a la motocicleta
+CREATE TABLE IF NOT EXISTS mantenimientos_moto (
+  id TEXT PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  placa_snapshot TEXT NOT NULL,
+  fecha DATE NOT NULL DEFAULT CURRENT_DATE,
+  descripcion TEXT NOT NULL,
+  kilometraje_actual INTEGER NOT NULL CHECK (kilometraje_actual >= 0),
+  kilometraje_proximo_cambio INTEGER CHECK (kilometraje_proximo_cambio IS NULL OR kilometraje_proximo_cambio >= 0),
+  valor NUMERIC(12,2) CHECK (valor IS NULL OR valor >= 0),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_mantenimientos_moto_user_fecha ON mantenimientos_moto(user_id, fecha DESC);
+CREATE INDEX IF NOT EXISTS idx_mantenimientos_moto_placa_fecha ON mantenimientos_moto(placa_snapshot, fecha DESC);
+
 -- Seed de catálogo de 32 elementos del checklist
 INSERT INTO alistamiento_items_catalogo (id, nombre, orden) VALUES
   (1, 'Cambio de aceite / verificación del kilometraje', 1),
@@ -208,6 +224,7 @@ ALTER TABLE domiciliario_perfiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE alistamientos_diarios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE alistamiento_detalles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE alistamiento_items_catalogo ENABLE ROW LEVEL SECURITY;
+ALTER TABLE mantenimientos_moto ENABLE ROW LEVEL SECURITY;
 
 -- Limpiar políticas previas para idempotencia
 DROP POLICY IF EXISTS "Usuario ve su perfil domiciliario" ON domiciliario_perfiles;
@@ -218,6 +235,8 @@ DROP POLICY IF EXISTS "Usuario crea sus alistamientos diarios" ON alistamientos_
 DROP POLICY IF EXISTS "Usuario ve detalles de sus alistamientos" ON alistamiento_detalles;
 DROP POLICY IF EXISTS "Usuario inserta detalles de sus alistamientos" ON alistamiento_detalles;
 DROP POLICY IF EXISTS "Usuarios autenticados ven catálogo de alistamiento" ON alistamiento_items_catalogo;
+DROP POLICY IF EXISTS "Usuario ve sus mantenimientos" ON mantenimientos_moto;
+DROP POLICY IF EXISTS "Usuario crea sus mantenimientos" ON mantenimientos_moto;
 
 -- Políticas RLS para usuario autenticado
 CREATE POLICY "Usuario ve su perfil domiciliario"
@@ -283,3 +302,22 @@ CREATE POLICY "Usuarios autenticados ven catálogo de alistamiento"
 ON alistamiento_items_catalogo
 FOR SELECT
 USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Usuario ve sus mantenimientos"
+ON mantenimientos_moto
+FOR SELECT
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Usuario crea sus mantenimientos"
+ON mantenimientos_moto
+FOR INSERT
+WITH CHECK (
+  auth.uid() = user_id
+  AND EXISTS (
+    SELECT 1
+    FROM domiciliario_perfiles p
+    WHERE p.user_id = auth.uid()
+      AND p.es_domiciliario = true
+      AND p.placa IS NOT NULL
+  )
+);

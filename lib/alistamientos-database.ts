@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { ItemChecklist, PerfilDomiciliario, EstadoAlistamiento } from '@/types/alistamiento';
+import { ItemChecklist, PerfilDomiciliario, EstadoAlistamiento, MantenimientoMoto } from '@/types/alistamiento';
 
 function obtenerClienteSupabase() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -178,6 +178,55 @@ export async function obtenerHistorialAlistamientos(userId: string, accessToken?
   return data || [];
 }
 
+export async function listarMantenimientosPropios(userId: string, accessToken?: string): Promise<MantenimientoMoto[]> {
+  const supabase = await obtenerClienteAutenticado(accessToken);
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('mantenimientos_moto')
+    .select('*')
+    .eq('user_id', userId)
+    .order('fecha', { ascending: false })
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message || 'No fue posible consultar los mantenimientos');
+  return (data || []) as MantenimientoMoto[];
+}
+
+export async function crearMantenimientoMoto(params: {
+  userId: string;
+  fecha: string;
+  descripcion: string;
+  kilometrajeActual: number;
+  kilometrajeProximoCambio?: number | null;
+  valor?: number | null;
+  accessToken?: string;
+}): Promise<MantenimientoMoto> {
+  const { userId, fecha, descripcion, kilometrajeActual, kilometrajeProximoCambio, valor, accessToken } = params;
+  const supabase = await obtenerClienteAutenticado(accessToken);
+  if (!supabase) throw new Error('No se pudo inicializar cliente de base de datos');
+
+  const perfil = await obtenerPerfilDomiciliario(userId, accessToken);
+  if (!perfil?.es_domiciliario || !perfil.placa) {
+    throw new Error('El usuario no tiene un perfil de domiciliario habilitado con placa asignada');
+  }
+
+  const { data, error } = await supabase
+    .from('mantenimientos_moto')
+    .insert([{
+      id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
+      user_id: userId,
+      placa_snapshot: perfil.placa,
+      fecha,
+      descripcion: descripcion.trim(),
+      kilometraje_actual: kilometrajeActual,
+      kilometraje_proximo_cambio: kilometrajeProximoCambio ?? null,
+      valor: valor ?? null,
+    }])
+    .select('*')
+    .single();
+  if (error) throw new Error(error.message || 'No fue posible guardar el mantenimiento');
+  return data as MantenimientoMoto;
+}
+
 export async function listarPerfilesDomiciliariosAdmin() {
   const supabase = obtenerClienteSupabaseAdmin();
   if (!supabase) return [];
@@ -320,4 +369,44 @@ export async function listarMesesConAlistamientoAdmin() {
     meses.add(fecha.slice(0, 7));
   }
   return Array.from(meses).sort((a, b) => b.localeCompare(a));
+}
+
+export async function listarMantenimientosAdmin(userId?: string) {
+  const supabase = obtenerClienteSupabaseAdmin();
+  if (!supabase) throw new Error('No hay configuración admin');
+  let query = supabase
+    .from('mantenimientos_moto')
+    .select('*')
+    .order('fecha', { ascending: false })
+    .order('created_at', { ascending: false });
+  if (userId) query = query.eq('user_id', userId);
+  const { data, error } = await query;
+  if (error) throw new Error(error.message || 'No fue posible consultar los mantenimientos');
+
+  const { data: perfiles } = await supabase
+    .from('domiciliario_perfiles')
+    .select('user_id, nombre_completo, placa');
+  const perfilesPorUsuario = new Map((perfiles || []).map((perfil: any) => [perfil.user_id, perfil]));
+  return (data || []).map((mantenimiento: any) => {
+    const perfil = perfilesPorUsuario.get(mantenimiento.user_id) as any;
+    return {
+      ...mantenimiento,
+      nombre_completo: perfil?.nombre_completo || null,
+      placa: mantenimiento.placa_snapshot || perfil?.placa || null,
+    };
+  });
+}
+
+export async function obtenerReporteMantenimientosAdmin(userId: string) {
+  const supabase = obtenerClienteSupabaseAdmin();
+  if (!supabase) throw new Error('No hay configuración admin');
+  const { data: perfil, error: errorPerfil } = await supabase
+    .from('domiciliario_perfiles')
+    .select('user_id, nombre_completo, placa')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (errorPerfil) throw new Error(errorPerfil.message);
+  if (!perfil?.placa) throw new Error('El usuario no tiene una placa asignada');
+  const mantenimientos = await listarMantenimientosAdmin(userId);
+  return { perfil, mantenimientos };
 }
