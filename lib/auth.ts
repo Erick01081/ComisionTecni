@@ -256,6 +256,16 @@ export function esConsultaVentas(email: string | undefined): boolean {
 }
 
 /**
+ * Verifica si el usuario puede usar la consulta masiva de facturas.
+ *
+ * Esta funcionalidad está asignada de forma exclusiva al usuario que la
+ * solicitó; la comprobación se reutiliza tanto en la interfaz como en la API.
+ */
+export function esConsultaMasivaFacturas(email: string | undefined): boolean {
+  return email?.toLowerCase() === 'e.santiagom.s@gmail.com';
+}
+
+/**
  * Envía un email de recuperación de contraseña
  * 
  * Esta función envía un email al usuario con un enlace para restablecer su contraseña.
@@ -306,5 +316,4 @@ export async function esUsuarioDomiciliario(): Promise<boolean> {
   if (error) return false;
   return !!data?.es_domiciliario;
 }
-
 
