@@ -13,19 +13,23 @@ interface ResultadoFactura {
   valor: number;
 }
 
+interface FilaFactura {
+  factura: string;
+  resultado: ResultadoFactura | null;
+}
+
 function extraerConsecutivos(texto: string): string[] {
   const conPrefijo = [...texto.matchAll(/FV-2-\s*(\d+)/gi)].map(coincidencia => coincidencia[1]);
   const candidatos = conPrefijo.length > 0
     ? conPrefijo
     : texto.split(/[\s,|]+/).filter(valor => /^\d+$/.test(valor));
 
-  return [...new Set(candidatos)];
+  return candidatos;
 }
 
 function ConsultaMasivaFacturasPage(): JSX.Element {
   const [texto, setTexto] = useState('');
   const [resultados, setResultados] = useState<ResultadoFactura[]>([]);
-  const [noEncontradas, setNoEncontradas] = useState<string[]>([]);
   const [totalConsultadas, setTotalConsultadas] = useState(0);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
@@ -41,7 +45,7 @@ function ConsultaMasivaFacturasPage(): JSX.Element {
     setCargando(true);
     setError('');
     setResultados([]);
-    setNoEncontradas([]);
+    setTotalConsultadas(0);
 
     try {
       const supabase = obtenerClienteSupabase();
@@ -63,7 +67,6 @@ function ConsultaMasivaFacturasPage(): JSX.Element {
       }
 
       setResultados(datos.resultados || []);
-      setNoEncontradas(datos.no_encontradas || []);
       setTotalConsultadas(datos.total_consultadas || consecutivos.length);
     } catch (error) {
       setError(error instanceof Error ? error.message : 'No fue posible realizar la consulta.');
@@ -75,6 +78,20 @@ function ConsultaMasivaFacturasPage(): JSX.Element {
   const formatearMoneda = (valor: number) => new Intl.NumberFormat('es-CO', {
     style: 'currency', currency: 'COP', maximumFractionDigits: 0,
   }).format(valor);
+
+  const resultadosPorFactura = resultados.reduce((acumulado, resultado) => {
+    const resultadosFactura = acumulado.get(resultado.numero_factura) || [];
+    resultadosFactura.push(resultado);
+    acumulado.set(resultado.numero_factura, resultadosFactura);
+    return acumulado;
+  }, new Map<string, ResultadoFactura[]>());
+
+  const filas: FilaFactura[] = consecutivos.flatMap<FilaFactura>(factura => {
+    const resultadosFactura = resultadosPorFactura.get(factura);
+    return resultadosFactura?.length
+      ? resultadosFactura.map(resultado => ({ factura, resultado }))
+      : [{ factura, resultado: null }];
+  });
 
   return (
     <ProtegerRuta requiereConsultaMasivaFacturas={true}>
@@ -114,35 +131,35 @@ function ConsultaMasivaFacturasPage(): JSX.Element {
           {totalConsultadas > 0 && (
             <section className="mt-6 bg-white rounded-lg shadow-xl p-4 sm:p-6">
               <h2 className="text-lg font-bold text-gray-800">Resultados</h2>
-              <p className="mt-1 text-sm text-gray-600">{resultados.length} entrega{resultados.length === 1 ? '' : 's'} encontrada{resultados.length === 1 ? '' : 's'} de {totalConsultadas} consecutivos consultados.</p>
+              <p className="mt-1 text-sm text-gray-600">{resultados.length} entrega{resultados.length === 1 ? '' : 's'} encontrada{resultados.length === 1 ? '' : 's'} de {totalConsultadas} consecutivos consultados. Las filas conservan el orden en que se pegaron.</p>
 
-              {resultados.length > 0 && (
-                <div className="mt-4 overflow-x-auto">
-                  <table className="min-w-full text-sm">
-                    <thead className="border-b text-left text-gray-500">
-                      <tr><th className="px-3 py-3">Factura</th><th className="px-3 py-3">Entregó</th><th className="px-3 py-3">Pago</th><th className="px-3 py-3">Fecha</th><th className="px-3 py-3 text-right">Valor</th></tr>
-                    </thead>
-                    <tbody>
-                      {resultados.map((resultado, indice) => (
+              <div className="mt-4 overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead className="border-b text-left text-gray-500">
+                    <tr><th className="px-3 py-3">Factura</th><th className="px-3 py-3">Estado</th><th className="px-3 py-3">Entregó</th><th className="px-3 py-3">Pago</th><th className="px-3 py-3">Fecha</th><th className="px-3 py-3 text-right">Valor</th></tr>
+                  </thead>
+                  <tbody>
+                    {filas.map(({ factura, resultado }, indice) => {
+                      return resultado ? (
                         <tr key={`${resultado.numero_factura}-${indice}`} className="border-b last:border-0 text-gray-800">
-                          <td className="px-3 py-3 font-semibold">{resultado.numero_factura}</td>
+                          <td className="px-3 py-3 font-semibold">{factura}</td>
+                          <td className="px-3 py-3"><span className="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">Encontrada</span></td>
                           <td className="px-3 py-3">{resultado.usuario_email}</td>
                           <td className="px-3 py-3">{resultado.forma_pago}</td>
                           <td className="px-3 py-3">{resultado.fecha_domicilio}</td>
                           <td className="px-3 py-3 text-right font-medium text-green-700">{formatearMoneda(resultado.valor)}</td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {noEncontradas.length > 0 && (
-                <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4">
-                  <h3 className="font-semibold text-amber-900">No encontradas ({noEncontradas.length})</h3>
-                  <p className="mt-1 break-words text-sm text-amber-800">{noEncontradas.join(', ')}</p>
-                </div>
-              )}
+                      ) : (
+                        <tr key={`no-encontrada-${factura}-${indice}`} className="border-b last:border-0 bg-red-50 text-red-900">
+                          <td className="px-3 py-3 font-semibold">{factura}</td>
+                          <td className="px-3 py-3"><span className="rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-800">No encontrada</span></td>
+                          <td className="px-3 py-3 text-red-700" colSpan={4}>No hay una entrega registrada para este consecutivo.</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </section>
           )}
         </main>

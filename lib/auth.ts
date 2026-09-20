@@ -262,7 +262,17 @@ export function esConsultaVentas(email: string | undefined): boolean {
  * solicitó; la comprobación se reutiliza tanto en la interfaz como en la API.
  */
 export function esConsultaMasivaFacturas(email: string | undefined): boolean {
-  return email?.toLowerCase() === 'e.santiagom.s@gmail.com';
+  if (!email) {
+    return false;
+  }
+
+  const emailsAutorizados = [
+    'ventas1@tecnirecargas.com',
+    'e.santiagom.s@gmail.com',
+    'emilse.sutachan@gmail.com',
+  ];
+
+  return emailsAutorizados.includes(email.toLowerCase());
 }
 
 /**
@@ -316,4 +326,3 @@ export async function esUsuarioDomiciliario(): Promise<boolean> {
   if (error) return false;
   return !!data?.es_domiciliario;
 }
-

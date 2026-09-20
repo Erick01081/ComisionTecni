@@ -35,12 +35,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Debes enviar una lista de facturas.' }, { status: 400 });
     }
 
-    const facturas = [...new Set(body.facturas
-      .map((factura: unknown) => String(factura).trim())
-      .filter((factura: string) => /^\d+$/.test(factura)))]
+    const facturasSolicitadas: string[] = body.facturas
+      .map((factura: unknown): string => String(factura).trim())
+      .filter((factura: string) => /^\d+$/.test(factura))
       .slice(0, MAX_FACTURAS);
+    const facturas = [...new Set(facturasSolicitadas)];
 
-    if (facturas.length === 0) {
+    if (facturasSolicitadas.length === 0) {
       return NextResponse.json({ error: 'No se encontraron consecutivos válidos.' }, { status: 400 });
     }
 
@@ -78,8 +79,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       resultados,
-      no_encontradas: facturas.filter(factura => !encontradas.has(factura)),
-      total_consultadas: facturas.length,
+      no_encontradas: facturasSolicitadas.filter(factura => !encontradas.has(factura)),
+      total_consultadas: facturasSolicitadas.length,
     });
   } catch (error) {
     console.error('Error en consulta masiva de facturas:', error);
