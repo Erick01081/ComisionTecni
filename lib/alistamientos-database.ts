@@ -227,6 +227,56 @@ export async function crearMantenimientoMoto(params: {
   return data as MantenimientoMoto;
 }
 
+export async function actualizarMantenimientoMoto(params: {
+  id: string;
+  userId: string;
+  fecha: string;
+  descripcion: string;
+  kilometrajeActual: number;
+  kilometrajeProximoCambio?: number | null;
+  valor?: number | null;
+  accessToken?: string;
+}): Promise<MantenimientoMoto> {
+  const { id, userId, fecha, descripcion, kilometrajeActual, kilometrajeProximoCambio, valor, accessToken } = params;
+  const supabase = await obtenerClienteAutenticado(accessToken);
+  if (!supabase) throw new Error('No se pudo inicializar cliente de base de datos');
+
+  const { data, error } = await supabase
+    .from('mantenimientos_moto')
+    .update({
+      fecha,
+      descripcion: descripcion.trim(),
+      kilometraje_actual: kilometrajeActual,
+      kilometraje_proximo_cambio: kilometrajeProximoCambio ?? null,
+      valor: valor ?? null,
+    })
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select('*')
+    .maybeSingle();
+
+  if (error) throw new Error(error.message || 'No fue posible actualizar el mantenimiento');
+  if (!data) throw new Error('No se encontró el mantenimiento o no tienes permisos para editarlo');
+  return data as MantenimientoMoto;
+}
+
+export async function eliminarMantenimientoMoto(
+  id: string,
+  userId: string,
+  accessToken?: string
+): Promise<void> {
+  const supabase = await obtenerClienteAutenticado(accessToken);
+  if (!supabase) throw new Error('No se pudo inicializar cliente de base de datos');
+
+  const { error } = await supabase
+    .from('mantenimientos_moto')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId);
+
+  if (error) throw new Error(error.message || 'No fue posible eliminar el mantenimiento');
+}
+
 export async function listarPerfilesDomiciliariosAdmin() {
   const supabase = obtenerClienteSupabaseAdmin();
   if (!supabase) return [];

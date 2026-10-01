@@ -25,6 +25,8 @@ export default function MantenimientosPage() {
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
   const [mensaje, setMensaje] = useState('');
+  const [mantenimientoEditandoId, setMantenimientoEditandoId] = useState<string | null>(null);
+  const [procesandoId, setProcesandoId] = useState<string | null>(null);
 
   const headersAuth = async () => {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
@@ -50,14 +52,52 @@ export default function MantenimientosPage() {
 
   useEffect(() => { cargar(); }, []);
 
+  const limpiarFormulario = () => {
+    setDescripcion('');
+    setKilometrajeActual('');
+    setKilometrajeProximoCambio('');
+    setValor('');
+    setFecha(fechaHoy());
+  };
+
+  const replicarMantenimiento = (mantenimiento: MantenimientoMoto) => {
+    setMantenimientoEditandoId(null);
+    setFecha(fechaHoy());
+    setDescripcion(mantenimiento.descripcion);
+    setKilometrajeActual(String(mantenimiento.kilometraje_actual));
+    setKilometrajeProximoCambio(mantenimiento.kilometraje_proximo_cambio === null ? '' : String(mantenimiento.kilometraje_proximo_cambio));
+    setValor(mantenimiento.valor === null ? '' : String(mantenimiento.valor));
+    setMensaje('Se cargó el registro para replicarlo. Ajusta los datos y guárdalo.');
+    setError('');
+  };
+
+  const iniciarEdicion = (mantenimiento: MantenimientoMoto) => {
+    setMantenimientoEditandoId(mantenimiento.id);
+    setFecha(mantenimiento.fecha.slice(0, 10));
+    setDescripcion(mantenimiento.descripcion);
+    setKilometrajeActual(String(mantenimiento.kilometraje_actual));
+    setKilometrajeProximoCambio(mantenimiento.kilometraje_proximo_cambio === null ? '' : String(mantenimiento.kilometraje_proximo_cambio));
+    setValor(mantenimiento.valor === null ? '' : String(mantenimiento.valor));
+    setMensaje('');
+    setError('');
+  };
+
+  const cancelarEdicion = () => {
+    setMantenimientoEditandoId(null);
+    limpiarFormulario();
+    setMensaje('');
+    setError('');
+  };
+
   const guardar = async (event: FormEvent) => {
     event.preventDefault();
     setError('');
     setMensaje('');
     setGuardando(true);
+    const mantenimientoId = mantenimientoEditandoId;
     try {
-      const respuesta = await fetch('/api/alistamientos/mantenimientos', {
-        method: 'POST',
+      const respuesta = await fetch(mantenimientoId ? `/api/alistamientos/mantenimientos/${mantenimientoId}` : '/api/alistamientos/mantenimientos', {
+        method: mantenimientoId ? 'PUT' : 'POST',
         headers: await headersAuth(),
         body: JSON.stringify({
           fecha,
@@ -68,18 +108,42 @@ export default function MantenimientosPage() {
         }),
       });
       const datos = await respuesta.json();
-      if (!respuesta.ok) throw new Error(datos.error || 'No fue posible guardar el mantenimiento');
-      setMantenimientos((actuales) => [datos.mantenimiento, ...actuales]);
-      setDescripcion('');
-      setKilometrajeActual('');
-      setKilometrajeProximoCambio('');
-      setValor('');
-      setFecha(fechaHoy());
-      setMensaje('Mantenimiento guardado exitosamente.');
+      if (!respuesta.ok) throw new Error(datos.error || (mantenimientoId ? 'No fue posible actualizar el mantenimiento' : 'No fue posible guardar el mantenimiento'));
+      if (mantenimientoId) {
+        setMantenimientos((actuales) => actuales.map((item) => item.id === mantenimientoId ? datos.mantenimiento : item));
+        setMensaje('Mantenimiento actualizado exitosamente.');
+      } else {
+        setMantenimientos((actuales) => [datos.mantenimiento, ...actuales]);
+        setMensaje('Mantenimiento guardado exitosamente.');
+      }
+      setMantenimientoEditandoId(null);
+      limpiarFormulario();
     } catch (err: any) {
-      setError(err.message || 'Error al guardar el mantenimiento');
+      setError(err.message || (mantenimientoId ? 'Error al actualizar el mantenimiento' : 'Error al guardar el mantenimiento'));
     } finally {
       setGuardando(false);
+    }
+  };
+
+  const eliminarMantenimiento = async (id: string) => {
+    if (!confirm('¿Estás seguro de eliminar este mantenimiento?')) return;
+    setError('');
+    setMensaje('');
+    setProcesandoId(id);
+    try {
+      const respuesta = await fetch(`/api/alistamientos/mantenimientos/${id}`, {
+        method: 'DELETE',
+        headers: await headersAuth(),
+      });
+      const datos = await respuesta.json();
+      if (!respuesta.ok) throw new Error(datos.error || 'No fue posible eliminar el mantenimiento');
+      setMantenimientos((actuales) => actuales.filter((item) => item.id !== id));
+      if (mantenimientoEditandoId === id) cancelarEdicion();
+      setMensaje('Mantenimiento eliminado exitosamente.');
+    } catch (err: any) {
+      setError(err.message || 'Error al eliminar el mantenimiento');
+    } finally {
+      setProcesandoId(null);
     }
   };
 
@@ -110,15 +174,26 @@ export default function MantenimientosPage() {
               <label className="text-sm font-medium text-gray-700">Valor <span className="font-normal text-gray-500">(opcional)</span>
                 <input min="0" step="1" inputMode="decimal" type="number" value={valor} onChange={(e) => setValor(e.target.value)} className="mt-1 block w-full rounded border border-gray-300 p-2 text-gray-900" />
               </label>
-              <div className="flex items-end"><button disabled={guardando} className="w-full rounded bg-primary-600 px-4 py-2 text-white hover:bg-primary-700 disabled:opacity-50">{guardando ? 'Guardando...' : 'Guardar mantenimiento'}</button></div>
+              <div className="flex items-end">
+                <button disabled={guardando} className="w-full rounded bg-primary-600 px-4 py-2 text-white hover:bg-primary-700 disabled:opacity-50">
+                  {guardando ? (mantenimientoEditandoId ? 'Actualizando...' : 'Guardando...') : (mantenimientoEditandoId ? 'Actualizar mantenimiento' : 'Guardar mantenimiento')}
+                </button>
+              </div>
+              {mantenimientoEditandoId && (
+                <div className="flex items-end">
+                  <button type="button" onClick={cancelarEdicion} className="w-full rounded border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50">
+                    Cancelar edición
+                  </button>
+                </div>
+              )}
             </form>
 
             <h2 className="mt-6 mb-3 text-lg font-bold text-gray-800">Historial</h2>
             {cargando ? <p className="text-gray-600">Cargando...</p> : mantenimientos.length === 0 ? <p className="text-gray-600">Aún no hay mantenimientos registrados.</p> : (
               <div className="overflow-x-auto border rounded">
                 <table className="min-w-full text-sm">
-                  <thead className="bg-gray-100"><tr><th className="p-3 text-left">Fecha</th><th className="p-3 text-left">Descripción</th><th className="p-3 text-right">Km actual</th><th className="p-3 text-right">Próximo cambio</th><th className="p-3 text-right">Valor</th></tr></thead>
-                  <tbody>{mantenimientos.map((mantenimiento) => <tr className="border-t" key={mantenimiento.id}><td className="p-3 whitespace-nowrap">{formatoFecha(mantenimiento.fecha)}</td><td className="p-3">{mantenimiento.descripcion}</td><td className="p-3 text-right whitespace-nowrap">{formatoNumero(mantenimiento.kilometraje_actual)}</td><td className="p-3 text-right whitespace-nowrap">{formatoNumero(mantenimiento.kilometraje_proximo_cambio)}</td><td className="p-3 text-right whitespace-nowrap">{formatoValor(mantenimiento.valor)}</td></tr>)}</tbody>
+                  <thead className="bg-gray-100"><tr><th className="p-3 text-left">Fecha</th><th className="p-3 text-left">Descripción</th><th className="p-3 text-right">Km actual</th><th className="p-3 text-right">Próximo cambio</th><th className="p-3 text-right">Valor</th><th className="p-3 text-left">Acciones</th></tr></thead>
+                  <tbody>{mantenimientos.map((mantenimiento) => <tr className="border-t" key={mantenimiento.id}><td className="p-3 whitespace-nowrap">{formatoFecha(mantenimiento.fecha)}</td><td className="p-3">{mantenimiento.descripcion}</td><td className="p-3 text-right whitespace-nowrap">{formatoNumero(mantenimiento.kilometraje_actual)}</td><td className="p-3 text-right whitespace-nowrap">{formatoNumero(mantenimiento.kilometraje_proximo_cambio)}</td><td className="p-3 text-right whitespace-nowrap">{formatoValor(mantenimiento.valor)}</td><td className="p-3"><div className="flex flex-wrap gap-2"><button type="button" onClick={() => replicarMantenimiento(mantenimiento)} className="rounded border border-blue-300 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-50">Replicar</button><button type="button" onClick={() => iniciarEdicion(mantenimiento)} className="rounded border border-amber-300 px-2 py-1 text-xs font-medium text-amber-700 hover:bg-amber-50">Modificar</button><button type="button" disabled={procesandoId === mantenimiento.id} onClick={() => eliminarMantenimiento(mantenimiento.id)} className="rounded border border-red-300 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50">{procesandoId === mantenimiento.id ? 'Eliminando...' : 'Eliminar'}</button></div></td></tr>)}</tbody>
                 </table>
               </div>
             )}
