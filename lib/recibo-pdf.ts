@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import PDFDocument from 'pdfkit';
 
 export interface ProductoRecibo {
@@ -15,99 +17,112 @@ export interface DatosRecibo {
 }
 
 const formatoCOP = (valor: number) => new Intl.NumberFormat('es-CO', {
-  style: 'currency',
-  currency: 'COP',
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
+  style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0,
 }).format(valor);
 
-function ajustarTexto(doc: PDFKit.PDFDocument, texto: string, ancho: number, fuente: string, tamano: number) {
-  doc.font(fuente).fontSize(tamano);
-  if (doc.widthOfString(texto) <= ancho) return texto;
-  let resultado = texto;
-  while (resultado.length > 1 && doc.widthOfString(`${resultado}...`) > ancho) {
-    resultado = resultado.slice(0, -1);
+const margen = 42;
+const tinta = '#18212f';
+const gris = '#64748b';
+const linea = '#e2e8f0';
+const acento = '#0f766e';
+const fondoSuave = '#f1f5f9';
+
+function dibujarEncabezado(doc: PDFKit.PDFDocument, datos: DatosRecibo) {
+  const ancho = doc.page.width - margen * 2;
+  const logo = path.join(process.cwd(), 'public', 'logo-toner-premium.jpeg');
+  if (fs.existsSync(logo)) doc.image(logo, margen, 34, { fit: [174, 84], align: 'left', valign: 'center' });
+
+  const bloqueX = margen + 194;
+  const bloqueAncho = ancho - 194;
+  doc.fillColor(acento).font('Helvetica-Bold').fontSize(9).text('RECIBO COMERCIAL', bloqueX, 42, { width: bloqueAncho, align: 'right', characterSpacing: 1.2 });
+  doc.fillColor(tinta).font('Helvetica-Bold').fontSize(20).text('Comprobante de venta', bloqueX, 59, { width: bloqueAncho, align: 'right' });
+  doc.fillColor(gris).font('Helvetica').fontSize(9).text(`No. ${datos.numero}`, bloqueX, 87, { width: bloqueAncho, align: 'right' });
+  doc.text(`Fecha de emisión  ·  ${datos.fecha}`, bloqueX, 102, { width: bloqueAncho, align: 'right' });
+  doc.moveTo(margen, 132).lineTo(doc.page.width - margen, 132).lineWidth(1).strokeColor(linea).stroke();
+}
+
+function dibujarCabeceraTabla(doc: PDFKit.PDFDocument, y: number, ancho: number) {
+  const columnas = [
+    { titulo: 'ÍTEM', ancho: 42, align: 'center' as const },
+    { titulo: 'DESCRIPCIÓN', ancho: ancho - 42 - 74 - 104 - 112, align: 'left' as const },
+    { titulo: 'CANT.', ancho: 74, align: 'center' as const },
+    { titulo: 'VALOR UNITARIO', ancho: 104, align: 'right' as const },
+    { titulo: 'VALOR TOTAL', ancho: 112, align: 'right' as const },
+  ];
+  doc.roundedRect(margen, y, ancho, 27, 4).fill(fondoSuave);
+  let x = margen;
+  for (const columna of columnas) {
+    doc.fillColor(gris).font('Helvetica-Bold').fontSize(7.5).text(columna.titulo, x + 7, y + 9, { width: columna.ancho - 14, align: columna.align, characterSpacing: 0.35 });
+    x += columna.ancho;
   }
-  return `${resultado.trim()}...`;
+  return columnas;
 }
 
 export function generarPdfRecibo(datos: DatosRecibo): Promise<Buffer> {
-  const doc = new PDFDocument({ size: 'LETTER', margin: 34, autoFirstPage: true });
+  const doc = new PDFDocument({ size: 'LETTER', margin: margen, bufferPages: true, info: { Title: `Recibo ${datos.numero}`, Author: 'Toner Premium' } });
   const chunks: Buffer[] = [];
-  const ancho = doc.page.width - 68;
-  const azul = '#075985';
-  const azulClaro = '#e0f2fe';
-  const gris = '#475569';
-  const borde = '#cbd5e1';
-  const cantidad = datos.productos.length;
-  const altoFila = Math.max(5, Math.min(25, 420 / Math.max(1, cantidad)));
-  const fuenteTabla = Math.max(4.5, Math.min(9, altoFila * 0.38));
-
+  const ancho = doc.page.width - margen * 2;
   doc.on('data', (chunk) => chunks.push(chunk));
 
-  doc.roundedRect(34, 34, ancho, 67, 6).fill(azul);
-  doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(18).text('Toner y Cartuchos', 34, 47, { width: ancho, align: 'center' });
-  doc.font('Helvetica').fontSize(9).text('Cra 13 59-24 local 102  ·  321 967 1908', 34, 75, { width: ancho, align: 'center' });
+  dibujarEncabezado(doc, datos);
+  doc.fillColor(gris).font('Helvetica-Bold').fontSize(8).text('DATOS DEL CLIENTE', margen, 151, { characterSpacing: 0.7 });
+  const tarjetaY = 167;
+  doc.roundedRect(margen, tarjetaY, ancho, 58, 5).fill('#f8fafc').strokeColor(linea).lineWidth(0.8).stroke();
+  const mitad = ancho / 2;
+  doc.fillColor(gris).font('Helvetica-Bold').fontSize(7.5).text('CLIENTE', margen + 14, tarjetaY + 11);
+  doc.fillColor(tinta).font('Helvetica').fontSize(10).text(datos.cliente, margen + 14, tarjetaY + 26, { width: mitad - 28, height: 24, ellipsis: true });
+  doc.fillColor(gris).font('Helvetica-Bold').fontSize(7.5).text('IDENTIFICACIÓN', margen + mitad + 10, tarjetaY + 11);
+  doc.fillColor(tinta).font('Helvetica').fontSize(10).text(datos.identificacion, margen + mitad + 10, tarjetaY + 26, { width: mitad - 24, height: 24, ellipsis: true });
 
-  let y = 116;
-  doc.fillColor(azul).font('Helvetica-Bold').fontSize(10).text('RECIBO COMERCIAL', 34, y);
-  doc.fillColor(gris).font('Helvetica').fontSize(8).text(`No. ${datos.numero}`, 34, y + 15);
-  doc.text(`Fecha: ${datos.fecha}`, 34, y + 15, { width: ancho, align: 'right' });
-  y += 42;
-
-  doc.fillColor(azulClaro).strokeColor(borde).roundedRect(34, y, ancho, 48, 4).fillAndStroke();
-  doc.fillColor(gris).font('Helvetica-Bold').fontSize(8).text('CLIENTE', 44, y + 9);
-  doc.font('Helvetica').fontSize(9).text(datos.cliente, 44, y + 22, { width: ancho / 2 - 54 });
-  doc.font('Helvetica-Bold').fontSize(8).text('IDENTIFICACIÓN', 34 + ancho / 2, y + 9);
-  doc.font('Helvetica').fontSize(9).text(datos.identificacion, 34 + ancho / 2, y + 22);
-  y += 64;
-
-  const columnas = [
-    { titulo: 'Ítem', ancho: 33, alineacion: 'center' as const },
-    { titulo: 'Descripción del producto', ancho: ancho - 33 - 72 - 92 - 92, alineacion: 'left' as const },
-    { titulo: 'Cantidad', ancho: 72, alineacion: 'center' as const },
-    { titulo: 'Valor unitario', ancho: 92, alineacion: 'right' as const },
-    { titulo: 'Valor total', ancho: 92, alineacion: 'right' as const },
-  ];
-  let x = 34;
-  for (const columna of columnas) {
-    doc.fillColor(azul).strokeColor(azul).rect(x, y, columna.ancho, 22).fillAndStroke();
-    doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(fuenteTabla).text(columna.titulo, x + 3, y + 7, { width: columna.ancho - 6, align: columna.alineacion });
-    x += columna.ancho;
-  }
-  y += 22;
-
+  doc.fillColor(gris).font('Helvetica-Bold').fontSize(8).text('DETALLE DE LA COMPRA', margen, 245, { characterSpacing: 0.7 });
+  let y = 261;
+  const columnas = dibujarCabeceraTabla(doc, y, ancho);
+  y += 27;
+  const total = datos.productos.reduce((suma, producto) => suma + producto.cantidad * producto.valorUnitario, 0);
   datos.productos.forEach((producto, indice) => {
-    x = 34;
-    const valores = [
-      String(indice + 1),
-      ajustarTexto(doc, producto.descripcion, columnas[1].ancho - 8, 'Helvetica', fuenteTabla),
-      String(producto.cantidad),
-      formatoCOP(producto.valorUnitario),
-      formatoCOP(producto.cantidad * producto.valorUnitario),
-    ];
-    columnas.forEach((columna, columnaIndice) => {
-      doc.fillColor(indice % 2 === 0 ? '#ffffff' : '#f8fafc').strokeColor(borde).rect(x, y, columna.ancho, altoFila).fillAndStroke();
-      doc.fillColor(gris).font('Helvetica').fontSize(fuenteTabla).text(valores[columnaIndice], x + 4, y + Math.max(3, (altoFila - fuenteTabla) / 2), {
-        width: columna.ancho - 8,
-        height: altoFila - 4,
-        align: columna.alineacion,
-        ellipsis: true,
-      });
+    const alturaDescripcion = doc.font('Helvetica').fontSize(9).heightOfString(producto.descripcion, { width: columnas[1].ancho - 16 });
+    const alto = Math.max(34, alturaDescripcion + 18);
+    if (y + alto > doc.page.height - 112) {
+      doc.addPage();
+      dibujarEncabezado(doc, datos);
+      y = 154;
+      dibujarCabeceraTabla(doc, y, ancho);
+      y += 27;
+    }
+    if (indice % 2 === 1) doc.rect(margen, y, ancho, alto).fill('#fafcfd');
+    doc.fillColor(linea).lineWidth(0.6).moveTo(margen, y + alto).lineTo(margen + ancho, y + alto).stroke();
+    let x = margen;
+    const values = [String(indice + 1).padStart(2, '0'), producto.descripcion, String(producto.cantidad), formatoCOP(producto.valorUnitario), formatoCOP(producto.cantidad * producto.valorUnitario)];
+    columnas.forEach((columna, columnIndex) => {
+      const fontSize = columnIndex === 1 ? 9 : 8.5;
+      doc.fillColor(columnIndex === 4 ? tinta : (columnIndex === 1 ? tinta : gris))
+        .font(columnIndex === 4 ? 'Helvetica-Bold' : 'Helvetica').fontSize(fontSize)
+        .text(values[columnIndex], x + 8, y + (columnIndex === 1 ? 9 : Math.max(10, (alto - fontSize) / 2)), {
+          width: columna.ancho - 16, height: alto - 12, align: columna.align, ellipsis: columnIndex !== 1,
+        });
       x += columna.ancho;
     });
-    y += altoFila;
+    y += alto;
   });
 
-  const total = datos.productos.reduce((suma, producto) => suma + producto.cantidad * producto.valorUnitario, 0);
-  y += 12;
-  const resumenX = 34 + ancho - 230;
-  doc.fillColor(gris).font('Helvetica').fontSize(9).text('Total de productos:', resumenX, y, { width: 130 });
-  doc.font('Helvetica-Bold').text(formatoCOP(total), resumenX + 130, y, { width: 100, align: 'right' });
-  doc.moveTo(resumenX, y + 17).lineTo(34 + ancho, y + 17).strokeColor(borde).stroke();
-  doc.fillColor(azul).font('Helvetica-Bold').fontSize(11).text('TOTAL A PAGAR:', resumenX, y + 26, { width: 130 });
-  doc.text(formatoCOP(total), resumenX + 130, y + 26, { width: 100, align: 'right' });
-  doc.fillColor(gris).font('Helvetica').fontSize(7).text('Recibo comercial de venta · No constituye factura electrónica ni documento tributario', 34, 742, { width: ancho, align: 'center' });
+  if (y + 100 > doc.page.height - margen) {
+    doc.addPage();
+    dibujarEncabezado(doc, datos);
+    y = 160;
+  }
+  y += 22;
+  doc.fillColor(gris).font('Helvetica').fontSize(9).text(`${datos.productos.length} ${datos.productos.length === 1 ? 'producto' : 'productos'}`, margen, y);
+  const totalBoxX = margen + ancho - 250;
+  doc.roundedRect(totalBoxX, y - 10, 250, 66, 6).fill('#ecfdf5');
+  doc.fillColor(acento).font('Helvetica-Bold').fontSize(8).text('TOTAL A PAGAR', totalBoxX + 14, y + 2, { characterSpacing: 0.8 });
+  doc.fillColor('#115e59').font('Helvetica-Bold').fontSize(17).text(formatoCOP(total), totalBoxX + 14, y + 20, { width: 222, align: 'right' });
+
+  const pieY = doc.page.height - 58;
+  doc.moveTo(margen, pieY - 12).lineTo(doc.page.width - margen, pieY - 12).lineWidth(0.8).strokeColor(linea).stroke();
+  doc.fillColor(gris).font('Helvetica').fontSize(7.5)
+    .text('Gracias por tu compra. Para consultas sobre este recibo, comunícate con Toner Premium.', margen, pieY, { width: ancho, align: 'center' });
+  doc.fillColor('#94a3b8').fontSize(7)
+    .text('Recibo comercial · No constituye factura electrónica ni documento tributario', margen, pieY + 13, { width: ancho, align: 'center' });
 
   doc.end();
   return new Promise((resolve) => doc.on('end', () => resolve(Buffer.concat(chunks))));
