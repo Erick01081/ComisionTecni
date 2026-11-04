@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { obtenerUsuarioActual, cerrarSesion, esAdministrador, esConsultaVentas, esConsultaMasivaFacturas, obtenerClienteSupabase } from '@/lib/auth';
+import { obtenerUsuarioActual, cerrarSesion, esAdministrador, esConsultaVentas, esConsultaMasivaFacturas, esGeneradorRecibos, obtenerClienteSupabase } from '@/lib/auth';
 import Logo from '@/components/Logo';
 
 interface NavegacionProps {
-  paginaActual: 'registro' | 'mis-entregas' | 'admin' | 'consulta-factura' | 'consulta-masiva-facturas' | 'alistamiento' | 'mis-alistamientos' | 'mantenimientos' | 'admin-mantenimientos';
+  paginaActual: 'registro' | 'mis-entregas' | 'admin' | 'consulta-factura' | 'consulta-masiva-facturas' | 'recibos' | 'alistamiento' | 'mis-alistamientos' | 'mantenimientos' | 'admin-mantenimientos';
 }
 
 /**
@@ -27,6 +27,7 @@ export default function Navegacion({ paginaActual }: NavegacionProps) {
   const [esAdmin, setIsAdmin] = useState(false);
   const [tieneConsultaVentas, setTieneConsultaVentas] = useState(false);
   const [tieneConsultaMasivaFacturas, setTieneConsultaMasivaFacturas] = useState(false);
+  const [tieneGeneradorRecibos, setTieneGeneradorRecibos] = useState(false);
   const [esDomiciliario, setEsDomiciliario] = useState(false);
 
   useEffect(() => {
@@ -37,6 +38,7 @@ export default function Navegacion({ paginaActual }: NavegacionProps) {
         setIsAdmin(esAdministrador(user.email));
         setTieneConsultaVentas(esConsultaVentas(user.email));
         setTieneConsultaMasivaFacturas(esConsultaMasivaFacturas(user.email));
+        setTieneGeneradorRecibos(esGeneradorRecibos(user.email));
         try {
           const supabase = obtenerClienteSupabase();
           let token = '';
@@ -180,6 +182,18 @@ export default function Navegacion({ paginaActual }: NavegacionProps) {
                 }`}
               >
                 Consulta masiva
+              </button>
+            )}
+            {tieneGeneradorRecibos && (
+              <button
+                onClick={() => navegar('/recibos')}
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  paginaActual === 'recibos'
+                    ? 'text-primary-600 border-b-2 border-primary-600'
+                    : 'text-gray-600 hover:text-primary-600'
+                }`}
+              >
+                Recibos
               </button>
             )}
           </div>
@@ -326,6 +340,18 @@ export default function Navegacion({ paginaActual }: NavegacionProps) {
                 }`}
               >
                 Consulta masiva
+              </button>
+            )}
+            {tieneGeneradorRecibos && (
+              <button
+                onClick={() => navegar('/recibos')}
+                className={`block w-full text-left px-3 py-3 rounded-md text-base font-medium transition-colors ${
+                  paginaActual === 'recibos'
+                    ? 'bg-primary-50 text-primary-600'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Recibos
               </button>
             )}
             <div className="border-t border-gray-200 pt-2 mt-2">

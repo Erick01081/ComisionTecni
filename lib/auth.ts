@@ -276,6 +276,21 @@ export function esConsultaMasivaFacturas(email: string | undefined): boolean {
 }
 
 /**
+ * Verifica si el usuario puede generar recibos comerciales.
+ * El módulo está restringido a los dos usuarios autorizados para esta operación.
+ */
+export function esGeneradorRecibos(email: string | undefined): boolean {
+  if (!email) {
+    return false;
+  }
+
+  return [
+    'emilse.sutachan@gmail.com',
+    'e.santiagom.s@gmail.com',
+  ].includes(email.toLowerCase());
+}
+
+/**
  * Envía un email de recuperación de contraseña
  * 
  * Esta función envía un email al usuario con un enlace para restablecer su contraseña.
