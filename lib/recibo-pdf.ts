@@ -30,7 +30,7 @@ const fondoSuave = '#f1f5f9';
 function dibujarEncabezado(doc: PDFKit.PDFDocument, datos: DatosRecibo) {
   const ancho = doc.page.width - margen * 2;
   const logo = path.join(process.cwd(), 'public', 'logo-toner-premium.jpeg');
-  if (fs.existsSync(logo)) doc.image(logo, margen, 34, { fit: [174, 84], align: 'left', valign: 'center' });
+  if (fs.existsSync(logo)) doc.image(logo, margen, 34, { fit: [174, 84], valign: 'center' });
 
   const bloqueX = margen + 194;
   const bloqueAncho = ancho - 194;
