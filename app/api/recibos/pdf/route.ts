@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { esGeneradorRecibos } from '@/lib/auth';
 import { obtenerUsuarioDesdeRequest } from '@/lib/request-auth';
-import { generarPdfRecibo, DatosRecibo } from '@/lib/recibo-pdf';
+import { generarPdfRecibo, DatosRecibo, MAX_PRODUCTOS_RECIBO } from '@/lib/recibo-pdf';
 
 export const runtime = 'nodejs';
 
@@ -14,19 +15,42 @@ export async function POST(request: NextRequest) {
     }
 
     const datos = await request.json() as DatosRecibo;
-    if (!datos.cliente?.trim() || !datos.identificacion?.trim() || !datos.numero?.trim() || !datos.fecha || !Array.isArray(datos.productos) || datos.productos.length === 0) {
+    if (!datos.cliente?.trim() || !datos.identificacion?.trim() || !datos.fecha || !Array.isArray(datos.productos) || datos.productos.length === 0) {
       return NextResponse.json({ error: 'Completa los datos del cliente y agrega al menos un producto.' }, { status: 400 });
+    }
+    if (datos.productos.length > MAX_PRODUCTOS_RECIBO) {
+      return NextResponse.json({ error: `El formato de una hoja permite hasta ${MAX_PRODUCTOS_RECIBO} productos.` }, { status: 400 });
     }
     if (datos.productos.some((producto) => !producto.descripcion?.trim() || !Number.isFinite(producto.valorUnitario) || producto.valorUnitario < 0 || !Number.isInteger(producto.cantidad) || producto.cantidad < 1)) {
       return NextResponse.json({ error: 'Revisa la descripción, el valor y la cantidad de cada producto.' }, { status: 400 });
     }
 
-    const pdf = await generarPdfRecibo(datos);
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceRoleKey) {
+      return NextResponse.json({ error: 'Falta configurar la conexión administrativa con Supabase para generar consecutivos.' }, { status: 500 });
+    }
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: consecutivo, error: errorConsecutivo } = await supabaseAdmin
+      .from('recibos_consecutivos')
+      .insert({})
+      .select('numero')
+      .single();
+    if (errorConsecutivo || !consecutivo) {
+      console.error('Error al guardar el consecutivo del recibo:', errorConsecutivo);
+      return NextResponse.json({ error: 'No fue posible guardar el consecutivo. Aplica la migración SQL de recibos en Supabase.' }, { status: 500 });
+    }
+
+    const numero = `RC-${new Date().getFullYear()}-${String(consecutivo.numero).padStart(5, '0')}`;
+    const pdf = await generarPdfRecibo({ ...datos, numero });
     return new NextResponse(new Uint8Array(pdf), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `inline; filename="recibo-${datos.numero}.pdf"`,
+        'Content-Disposition': `inline; filename="recibo-${numero}.pdf"`,
+        'X-Recibo-Numero': numero,
         'Content-Length': String(pdf.length),
       },
     });

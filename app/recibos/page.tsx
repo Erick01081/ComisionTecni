@@ -14,6 +14,7 @@ interface Producto {
 
 const moneda = (valor: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(valor);
 const hoy = () => new Date().toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+const MAX_PRODUCTOS = 35;
 
 export default function RecibosPage(): JSX.Element {
   const [cliente, setCliente] = useState('');
@@ -26,7 +27,7 @@ export default function RecibosPage(): JSX.Element {
 
   const total = useMemo(() => productos.reduce((suma, producto) => suma + (Number(producto.valorUnitario) || 0) * (Number(producto.cantidad) || 0), 0), [productos]);
   const actualizar = (id: number, campo: keyof Producto, valor: string) => setProductos((actuales) => actuales.map((producto) => producto.id === id ? { ...producto, [campo]: valor } : producto));
-  const agregar = () => setProductos((actuales) => [...actuales, { id: Date.now(), descripcion: '', valorUnitario: '', cantidad: '1' }]);
+  const agregar = () => setProductos((actuales) => actuales.length < MAX_PRODUCTOS ? [...actuales, { id: Date.now(), descripcion: '', valorUnitario: '', cantidad: '1' }] : actuales);
   const eliminar = (id: number) => setProductos((actuales) => actuales.length > 1 ? actuales.filter((producto) => producto.id !== id) : actuales);
 
   const generar = async (evento: React.FormEvent) => {
@@ -40,9 +41,6 @@ export default function RecibosPage(): JSX.Element {
     try {
       const supabase = obtenerClienteSupabase();
       const { data: { session } } = supabase ? await supabase.auth.getSession() : { data: { session: null } };
-      const consecutivo = Number(localStorage.getItem('recibo-consecutivo') || '0') + 1;
-      localStorage.setItem('recibo-consecutivo', String(consecutivo));
-      const numeroRecibo = `RC-${new Date().getFullYear()}-${String(consecutivo).padStart(5, '0')}`;
       const respuesta = await fetch('/api/recibos/pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
@@ -50,11 +48,12 @@ export default function RecibosPage(): JSX.Element {
           cliente: cliente.trim(),
           identificacion: identificacion.trim(),
           fecha: hoy(),
-          numero: numeroRecibo,
           productos: productos.map((producto) => ({ descripcion: producto.descripcion.trim(), valorUnitario: Number(producto.valorUnitario), cantidad: Number(producto.cantidad) })),
         }),
       });
       if (!respuesta.ok) throw new Error((await respuesta.json()).error || 'No fue posible generar el recibo.');
+      const numeroRecibo = respuesta.headers.get('X-Recibo-Numero');
+      if (!numeroRecibo) throw new Error('El recibo se generó sin número consecutivo.');
       const url = URL.createObjectURL(await respuesta.blob());
       if (pdfUrl) URL.revokeObjectURL(pdfUrl);
       setPdfUrl(url);
@@ -88,7 +87,7 @@ export default function RecibosPage(): JSX.Element {
               </div>
               <div className="mt-6 flex items-center justify-between">
                 <h2 className="font-semibold text-gray-800">Productos</h2>
-                <button type="button" onClick={agregar} className="rounded-lg bg-primary-50 px-3 py-2 text-sm font-semibold text-primary-700 hover:bg-primary-100">+ Agregar producto</button>
+                <button type="button" onClick={agregar} disabled={productos.length >= MAX_PRODUCTOS} className="rounded-lg bg-primary-50 px-3 py-2 text-sm font-semibold text-primary-700 hover:bg-primary-100 disabled:cursor-not-allowed disabled:opacity-50">+ Agregar producto</button>
               </div>
               <div className="mt-3 space-y-3">
                 {productos.map((producto, indice) => (
