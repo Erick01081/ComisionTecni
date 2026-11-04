@@ -30,7 +30,7 @@ export const MAX_PRODUCTOS_RECIBO = 35;
 
 function dibujarEncabezado(doc: PDFKit.PDFDocument, datos: DatosRecibo) {
   const ancho = doc.page.width - margen * 2;
-  const logo = path.join(process.cwd(), 'public', 'logo-toner-premium.jpeg');
+  const logo = path.join(process.cwd(), 'public', 'logo-toner-premium.png');
   if (fs.existsSync(logo)) doc.image(logo, margen, 34, { fit: [174, 84], valign: 'center' });
 
   const bloqueX = margen + 194;
